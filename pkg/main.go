@@ -1,21 +1,30 @@
 package main
 
 import (
-	"os"
-
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"os"
+	"strings"
 )
 
 func main() {
-	// Start listening to requests send from Grafana. This call is blocking so
-	// it wont finish until Grafana shutsdown the process or the plugin choose
-	// to exit close down by itself
-	err := datasource.Serve(newDatasource())
-
-	// Log any error if we could start the plugin.
+	hosts := cassandraHosts()
+	ds := SensetifDatasource{}
+	err := datasource.Serve(ds.newDatasource(hosts))
 	if err != nil {
 		log.DefaultLogger.Error(err.Error())
 		os.Exit(1)
 	}
+}
+
+func cassandraHosts() []string {
+	vars := os.Environ()
+	for i := 0; i < len(vars); i++ {
+		v := vars[i]
+		split := strings.Split(v, "=")
+		if split[0] == "CASSANDRA_HOSTS" {
+			return strings.Split(split[1], ",")
+		}
+	}
+	return []string{"192.168.1.42:9042"}
 }
