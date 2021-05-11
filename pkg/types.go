@@ -7,7 +7,7 @@ import (
 type SensorRef struct {
 	project   string
 	subsystem string
-	sensor    string
+	datapoint string
 }
 
 type TsPair struct {

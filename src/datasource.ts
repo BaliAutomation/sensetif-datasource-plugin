@@ -1,9 +1,9 @@
 import { DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
-import { MyDataSourceOptions, MyQuery } from './types';
+import { SensetifDataSourceOptions, SensetifQuery } from './types';
 
-export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptions> {
-  constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
+export class DataSource extends DataSourceWithBackend<SensetifQuery, SensetifDataSourceOptions> {
+  constructor(instanceSettings: DataSourceInstanceSettings<SensetifDataSourceOptions>) {
     super(instanceSettings);
   }
 }

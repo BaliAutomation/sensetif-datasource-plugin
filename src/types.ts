@@ -1,24 +1,60 @@
 import { DataQuery, DataSourceJsonData } from '@grafana/data';
 
-export interface MyQuery extends DataQuery {
-  queryText?: string;
-  constant: number;
+export interface SensetifQuery extends DataQuery {
+  project: string;
+  subsystem: string;
+  datapoint: string;
 }
 
-export const defaultQuery: Partial<MyQuery> = {
-  constant: 6.5,
+export const defaultQuery: Partial<SensetifQuery> = {
+  project: '',
+  subsystem: '',
+  datapoint: '',
 };
 
-/**
- * These are options configured for each DataSource instance
- */
-export interface MyDataSourceOptions extends DataSourceJsonData {
-  path?: string;
+export interface SensetifDataSourceOptions extends DataSourceJsonData {
+  projects: string[];
 }
 
-/**
- * Value that is used in the backend, but never sent over HTTP to the frontend
- */
-export interface MySecureJsonData {
-  apiKey?: string;
+export interface Project {
+
+}
+
+export interface PollDeclaration {
+  schedule: string;
+  zoneId: string;
+  organizationName: string;
+  project: string;
+  subsystemName: string;
+  url: string;
+  user: string;
+  password: string;
+  timestampExpression: string;
+  timeToLive: TimeToLive;
+  timestampType: TimestampType;
+}
+
+export enum TimeToLive {
+  a, // ninety-two days
+  b, // 370 days
+  c, // 5.5 years
+}
+
+export enum TimestampType {
+  epochMillis,
+  epochSeconds,
+  iso8601_zoned,
+  iso8601_offset,
+}
+
+export interface Datapoint {
+  name: string;
+  description: string;
+  url: string;
+  user: string;
+  password: string;
+  method: string;
+  acquisitiontype: string;
+  parsingpath: string;
+  interval: string;
 }
