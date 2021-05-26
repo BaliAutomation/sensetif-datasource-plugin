@@ -11,11 +11,7 @@ export interface LoadingStates {
 }
 
 export interface Props {
-  children: (
-    api: ProjectAPI,
-    states: LoadingStates,
-    projects: Project[],
-  ) => JSX.Element;
+  children: (api: ProjectAPI, states: LoadingStates, projects: Project[]) => JSX.Element;
 }
 
 export interface State {
@@ -35,8 +31,13 @@ export class ProjectProvider extends PureComponent<Props, State> {
     this.setState({
       loadingStates: { ...this.state.loadingStates, loadProjects: true },
     });
-    const projects = await getBackendSrv().get('/api/plugins/bali-automation-sensetif-datasource-plugin/resources/projects');
-    this.setState({ projects, loadingStates: { ...this.state.loadingStates, loadProjects: Object.keys(projects).length === 0 } });
+    const projects = await getBackendSrv().get(
+      '/api/plugins/bali-automation-sensetif-datasource-plugin/resources/projects'
+    );
+    this.setState({
+      projects,
+      loadingStates: { ...this.state.loadingStates, loadProjects: Object.keys(projects).length === 0 },
+    });
   };
 
   render() {

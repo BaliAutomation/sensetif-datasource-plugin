@@ -16,9 +16,7 @@ export interface SensetifDataSourceOptions extends DataSourceJsonData {
   projects: string[];
 }
 
-export interface Project {
-
-}
+export interface Project {}
 
 export interface PollDeclaration {
   schedule: string;
