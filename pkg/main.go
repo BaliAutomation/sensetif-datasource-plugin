@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"os"
-	"strings"
 )
 
 func main() {
@@ -62,13 +64,10 @@ func createCassandraClient() ([]string, CassandraClient) {
 
 func cassandraHosts() []string {
 	log.DefaultLogger.Info("cassandraHosts()")
-	vars := os.Environ()
-	for i := 0; i < len(vars); i++ {
-		v := vars[i]
-		split := strings.Split(v, "=")
-		if split[0] == "CASSANDRA_HOSTS" {
-			return strings.Split(split[1], ",")
-		}
+	if hosts, ok := os.LookupEnv("CASSANDRA_HOSTS"); ok {
+		log.DefaultLogger.Info(fmt.Sprintf("Found Cassandra Hosts:%s", hosts))
+		return strings.Split(hosts, ",")
 	}
+
 	return []string{"192.168.1.42"}
 }
