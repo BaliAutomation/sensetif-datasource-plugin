@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
   "type": "datasource",
   "name": "sensetif-datasource-plugin",
-  "id": "bali-automation-sensetif-datasource-plugin",
+  "id": "sensetif-datasource-plugin",
   "metrics": true,
   "backend": true,
   "executable": "gpx_sensetif-datasource-plugin",

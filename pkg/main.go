@@ -52,6 +52,9 @@ func createProjectHandler(cassandraClient *CassandraClient) backend.CallResource
 func createCassandraClient() ([]string, CassandraClient) {
 	log.DefaultLogger.Info("createCassandraClient()")
 	hosts := cassandraHosts()
+	for _, host := range hosts {
+		log.DefaultLogger.Info("Cassandra Host: " + host)
+	}
 	cassandraClient := CassandraClient{}
 	cassandraClient.initializeCassandra(hosts)
 	return hosts, cassandraClient
