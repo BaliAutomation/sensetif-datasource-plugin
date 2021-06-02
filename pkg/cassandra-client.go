@@ -21,6 +21,10 @@ func (cass *CassandraClient) initializeCassandra(hosts []string) {
 	cass.clusterConfig = gocql.NewCluster()
 	cass.clusterConfig.Hosts = hosts
 	cass.clusterConfig.Port = 9042
+	cass.clusterConfig.HostFilter = gocql.HostFilterFunc(func(host *gocql.HostInfo) bool {
+		log.DefaultLogger.Info("Filter: " + host.ConnectAddress().String() + ":" + strconv.Itoa(host.Port()) + " --> " + host.String())
+		return true
+	})
 	cass.clusterConfig.Keyspace = "ks_sensetif"
 	cass.reinitialize()
 }
