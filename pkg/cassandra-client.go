@@ -10,17 +10,18 @@ import (
 )
 
 type CassandraClient struct {
-	cluster *gocql.ClusterConfig
-	session *gocql.Session
-	err     error
-	ctx     context.Context
+	clusterConfig *gocql.ClusterConfig
+	session       *gocql.Session
+	err           error
+	ctx           context.Context
 }
 
 func (cass *CassandraClient) initializeCassandra(hosts []string) {
-	log.DefaultLogger.Info("Initialize Cassandra client")
-	cass.cluster = gocql.NewCluster(hosts[0])
-	cass.cluster.Hosts = hosts
-	cass.cluster.Keyspace = "ks_sensetif"
+	log.DefaultLogger.Info("Initialize Cassandra client: " + hosts[0])
+	cass.clusterConfig = gocql.NewCluster()
+	cass.clusterConfig.Hosts = hosts
+	cass.clusterConfig.Port = 9042
+	cass.clusterConfig.Keyspace = "ks_sensetif"
 	cass.reinitialize()
 }
 
@@ -29,7 +30,7 @@ func (cass *CassandraClient) reinitialize() {
 	if cass.session != nil {
 		cass.session.Close()
 	}
-	cass.session, cass.err = cass.cluster.CreateSession()
+	cass.session, cass.err = cass.clusterConfig.CreateSession()
 	if cass.err != nil {
 		log.DefaultLogger.Error("Unable to create Cassandra session: " + fmt.Sprintf("%+v", cass.err))
 	}

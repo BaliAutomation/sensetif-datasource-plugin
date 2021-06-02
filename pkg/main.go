@@ -65,6 +65,5 @@ func cassandraHosts() []string {
 		log.DefaultLogger.Info(fmt.Sprintf("Found Cassandra Hosts:%s", hosts))
 		return strings.Split(hosts, ",")
 	}
-
-	return []string{"192.168.1.42"}
+	return []string{"192.168.1.42"} // Default at Niclas' lab
 }
