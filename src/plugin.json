@@ -3,6 +3,7 @@
   "type": "datasource",
   "name": "sensetif-datasource-plugin",
   "id": "bali-automation-sensetif-datasource-plugin",
+  "autoEnabled": false,
   "metrics": true,
   "backend": true,
   "executable": "gpx_sensetif-datasource-plugin",
