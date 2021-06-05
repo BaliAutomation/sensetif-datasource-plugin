@@ -32,7 +32,7 @@ export class ProjectProvider extends PureComponent<Props, State> {
       loadingStates: { ...this.state.loadingStates, loadProjects: true },
     });
     const projects = await getBackendSrv().get(
-      '/api/plugins/bali-automation-sensetif-datasource-plugin/resources/projects'
+      '/api/plugins/sensetif-datasource-plugin/resources/projects'
     );
     this.setState({
       projects,
