@@ -13,10 +13,10 @@
   "author": "Niclas Hedhman",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@grafana/toolkit": "^7.5.5",
-    "@grafana/data": "^7.5.5",
-    "@grafana/runtime": "^7.5.5",
-    "@grafana/ui": "^7.5.5",
+    "@grafana/toolkit": "^7.5.7",
+    "@grafana/data": "^7.5.7",
+    "@grafana/runtime": "^7.5.7",
+    "@grafana/ui": "^7.5.7",
     "@types/lodash": "^4.14.168"
   },
   "resolutions": {
