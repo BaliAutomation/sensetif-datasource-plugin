@@ -15,7 +15,7 @@ type ProjectHandler struct {
 	cassandraClient *CassandraClient
 }
 
-func (p *ProjectHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	log.DefaultLogger.Info("Resource Request: " + fmt.Sprintf("%s %s", request.Method, request.Path))
 
 	if request.URL == "projects" && http.MethodPost == request.Method {
@@ -33,7 +33,7 @@ func (p *ProjectHandler) CallResource(ctx context.Context, request *backend.Call
 	return p.notFound(ctx, request, sender)
 }
 
-func (p *ProjectHandler) addProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+func (p ProjectHandler) addProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	bodyRaw := request.Body
 	log.DefaultLogger.Info("[addProject]")
 
@@ -53,11 +53,11 @@ func (p *ProjectHandler) addProject(ctx context.Context, request *backend.CallRe
 	)
 }
 
-func (p *ProjectHandler) updateProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+func (p ProjectHandler) updateProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	return nil
 }
 
-func (p *ProjectHandler) getProjects(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+func (p ProjectHandler) getProjects(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	responseRaw := `[
 			{
 			  "name": "sbc1_malmo",
@@ -104,7 +104,7 @@ func (p *ProjectHandler) getProjects(ctx context.Context, request *backend.CallR
 	return nil
 }
 
-func (p *ProjectHandler) notFound(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+func (p ProjectHandler) notFound(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	log.DefaultLogger.Error("Resource " + request.URL + " not found.")
 
 	return sender.Send(&backend.CallResourceResponse{
