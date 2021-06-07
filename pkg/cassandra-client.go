@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gocql/gocql"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"strconv"
 	"time"
+
+	"github.com/gocql/gocql"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
 type CassandraClient struct {
