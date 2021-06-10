@@ -53,6 +53,7 @@ func (sds *SensetifDatasource) query(ctx context.Context, orgId int64, query bac
 		log.DefaultLogger.Warn("format is empty. defaulting to time series")
 		qm.Format = "timeseries"
 	}
+
 	log.DefaultLogger.Info("format is " + qm.Format)
 	switch qm.Format {
 	case "timeseries":
