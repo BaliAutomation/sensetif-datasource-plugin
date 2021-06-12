@@ -47,7 +47,7 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 	}
 
 	if pathSubsystems.Match([]byte(request.URL)) && http.MethodGet == request.Method {
-		return p.getSubystems(ctx, request, sender)
+		return p.getSubsystems(ctx, request, sender)
 	}
 
 	if pathProject.Match([]byte(request.URL)) && http.MethodGet == request.Method {
@@ -168,23 +168,9 @@ func (p ProjectHandler) getProjects(ctx context.Context, request *backend.CallRe
 	return nil
 }
 
-func getOrgId(request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) (int64, error) {
-	orgIdHeader := request.Headers["X-Grafana-Org-Id"][0]
-	orgId, err := strconv.ParseInt(orgIdHeader, 10, 64)
-	if err != nil {
-		sender.Send(&backend.CallResourceResponse{
-			Status:  http.StatusNotAcceptable,
-			Headers: make(map[string][]string),
-			Body:    []byte("Header X-Grafana-Org-Id is missing."),
-		})
-		return 0, err
-	}
-	return orgId, nil
-}
-
-func (p ProjectHandler) getSubystems(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+func (p ProjectHandler) getSubsystems(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	match := pathSubsystems.FindStringSubmatch(request.URL)
-	log.DefaultLogger.Info(fmt.Sprintf("[getSubystems] %v ", match))
+	log.DefaultLogger.Info(fmt.Sprintf("[getSubsystems] %v ", match))
 
 	orgId, err := getOrgId(request, sender)
 	if err != nil {
@@ -285,6 +271,20 @@ func (p ProjectHandler) getDatapoints(ctx context.Context, request *backend.Call
 	}
 	log.DefaultLogger.Info("Datapoints sent to client:\n" + string(rawJson[:]))
 	return nil
+}
+
+func getOrgId(request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) (int64, error) {
+	orgIdHeader := request.Headers["X-Grafana-Org-Id"][0]
+	orgId, err := strconv.ParseInt(orgIdHeader, 10, 64)
+	if err != nil {
+		sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusNotAcceptable,
+			Headers: make(map[string][]string),
+			Body:    []byte("Header X-Grafana-Org-Id is missing."),
+		})
+		return 0, err
+	}
+	return orgId, nil
 }
 
 func (p ProjectHandler) notFound(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
