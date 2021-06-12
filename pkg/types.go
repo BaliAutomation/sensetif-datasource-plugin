@@ -103,8 +103,9 @@ const (
 
 // AuthenticationType values
 const (
-	basic      AuthenticationType = 0
-	queryParam AuthenticationType = 1
+	none       AuthenticationType = 0
+	basic      AuthenticationType = 1
+	queryParam AuthenticationType = 2
 )
 
 // OriginDocumentFormat values
