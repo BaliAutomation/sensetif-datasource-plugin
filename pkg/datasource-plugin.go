@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	JSON "encoding/json"
 	"fmt"
 	"time"
 
@@ -44,7 +44,7 @@ func (sds *SensetifDatasource) query(ctx context.Context, orgId int64, query bac
 	log.DefaultLogger.Info("query()")
 	response := backend.DataResponse{}
 	var qm queryModel
-	response.Error = json.Unmarshal(query.JSON, &qm)
+	response.Error = JSON.Unmarshal(query.JSON, &qm)
 	if response.Error != nil {
 		return response
 	}
@@ -69,7 +69,7 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 
 	response := backend.DataResponse{}
 	var model SensorRef
-	response.Error = json.Unmarshal(query.JSON, &model)
+	response.Error = JSON.Unmarshal(query.JSON, &model)
 	if response.Error != nil {
 		return response
 	}

@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	JSON "encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -61,7 +62,7 @@ func (p ProjectHandler) addProject(ctx context.Context, request *backend.CallRes
 	log.DefaultLogger.Info("[addProject]")
 
 	project := ProjectSettings{}
-	if err := json.Unmarshal(bodyRaw, &project); err != nil {
+	if err := JSON.Unmarshal(bodyRaw, &project); err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("[addProject] unmarshaling. Raw project: %s", string(bodyRaw)))
 		return err
 	}
@@ -107,41 +108,61 @@ func (p ProjectHandler) getProject(ctx context.Context, request *backend.CallRes
 	return nil
 }
 func (p ProjectHandler) getProjects(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	responseRaw := `[
-			{
-			  "name": "sbc1_malmo",
-			  "title": "Brf Benzelius",
-			  "city": "Lund",
-			  "geolocation": "@55.884878,13.156352,13z",
-			  "subsystems": []
-			},
-			{
-			  "name": "sbc2_malmo",
-			  "title": "Brf Lillbragden",
-			  "city": "Malmö",
-			  "geolocation": "@55.884878,13.156352,13z",
-			  "subsystems": []
-			},
-			{
-			  "name": "sbc3_malmo",
-			  "title": "Brf Majoren",
-			  "city": "Malmö",
-			  "geolocation": "@55.884878,13.156352,13z",
-			  "subsystems": []
-			},
-			{
-			  "name": "sbc4_malmo",
-			  "title": "Brf Schougen",
-			  "city": "Malmö",
-			  "geolocation": "@55.884878,13.156352,13z",
-			  "subsystems": []
-			}
-		  ]`
 
-	err := sender.Send(&backend.CallResourceResponse{
+	orgIdHeader := request.Headers["X-Grafana-Org-Id"][0]
+	orgId, err := strconv.ParseInt(orgIdHeader, 10, 64)
+	if err != nil {
+		sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusNotAcceptable,
+			Headers: make(map[string][]string),
+			Body:    []byte("Header X-Grafana-Org-Id is missing."),
+		})
+	}
+	var projects []ProjectSettings
+	projects = p.cassandraClient.findAllProjects(orgId)
+	if projects == nil {
+		var proj1 ProjectSettings
+		proj1.Name = "sbc1_malmo"
+		proj1.Title = "Brf Benzelius"
+		proj1.City = "Lund"
+		proj1.Country = "Sverige"
+		proj1.Geolocation = "@55.884878,13.156352,13z"
+		var proj2 ProjectSettings
+		proj2.Name = "sbc2_malmo"
+		proj2.Title = "Brf Lillbragden"
+		proj2.City = "Malmö"
+		proj2.Country = "Sverige"
+		proj2.Geolocation = "@55.884878,13.156352,13z"
+		var proj3 ProjectSettings
+		proj3.Name = "sbc3_malmo"
+		proj3.Title = "Brf Majoren"
+		proj3.City = "Malmö"
+		proj3.Country = "Sverige"
+		proj3.Geolocation = "@55.884878,13.156352,13z"
+		var proj4 ProjectSettings
+		proj4.Name = "sbc4_malmo"
+		proj4.Title = "Brf Schougen"
+		proj4.City = "Malmö"
+		proj4.Country = "Sverige"
+		proj4.Geolocation = "@55.884878,13.156352,13z"
+		var proj5 ProjectSettings
+		proj5.Name = "sbc5_malmo"
+		proj5.Title = "Brf Eslövsgården"
+		proj5.City = "Malmö"
+		proj5.Country = "Sverige"
+		proj5.Geolocation = "@55.884878,13.156352,13z"
+		projects = append(projects, proj1, proj2, proj3, proj4, proj5)
+	}
+
+	rawJson, err2 := JSON.Marshal(projects)
+	if err2 != nil {
+		log.DefaultLogger.Error("Unable to marshal json")
+		return err2
+	}
+	err = sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
-		Body:    []byte(responseRaw),
+		Body:    []byte(rawJson),
 	})
 
 	if err != nil {
@@ -149,7 +170,7 @@ func (p ProjectHandler) getProjects(ctx context.Context, request *backend.CallRe
 		return err
 	}
 
-	log.DefaultLogger.Info("Projects sent to client.")
+	log.DefaultLogger.Info("Projects sent to client.\n" + string(rawJson[:]))
 	return nil
 }
 
