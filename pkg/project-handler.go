@@ -194,15 +194,20 @@ func (p ProjectHandler) getSubystems(ctx context.Context, request *backend.CallR
 	if len(subsystems) == 0 {
 		var sub1 SubsystemSettings
 		sub1.Project = match[1]
-		sub1.Name = "heating"
+		sub1.Name = "5601"
 		sub1.Title = "District Heating intake"
 		sub1.Locallocation = "BV-23"
 		var sub2 SubsystemSettings
 		sub2.Project = match[1]
-		sub2.Name = "heating"
-		sub2.Title = "District Heating intake"
-		sub2.Locallocation = "BV-23"
-		subsystems = append(subsystems, sub1, sub2)
+		sub2.Name = "5701"
+		sub2.Title = "Ventilation TA1"
+		sub2.Locallocation = "3-10"
+		var sub3 SubsystemSettings
+		sub3.Project = match[1]
+		sub3.Name = "5701"
+		sub3.Title = "Ventilation TA2"
+		sub3.Locallocation = "3-50"
+		subsystems = append(subsystems, sub1, sub2, sub3)
 	}
 	rawJson, err2 := JSON.Marshal(subsystems)
 	if err2 != nil {
@@ -262,7 +267,6 @@ func (p ProjectHandler) getDatapoints(ctx context.Context, request *backend.Call
 		dp2.TimeToLive = d
 		dp2.TimestampType = epochSeconds
 		dp2.TimestampExpression = "$.currently.time"
-
 		datapoints = append(datapoints, dp1, dp2)
 	}
 	rawJson, err2 := JSON.Marshal(datapoints)
