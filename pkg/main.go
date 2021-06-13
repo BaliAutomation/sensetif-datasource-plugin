@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -13,7 +15,8 @@ import (
 func main() {
 	log.DefaultLogger.Info("Starting Sensetif plugin")
 	hosts, cassandraClient := createCassandraClient()
-	resourceHandler := createProjectHandler(&cassandraClient)
+	kafkaClient := createKafkaClient()
+	resourceHandler := createProjectHandler(&cassandraClient, &kafkaClient)
 	ds := createDatasource(&cassandraClient, hosts)
 	startServing(ds, resourceHandler)
 }
@@ -43,10 +46,11 @@ func createDatasource(cassandraClient *CassandraClient, hosts []string) Sensetif
 	return ds
 }
 
-func createProjectHandler(cassandraClient *CassandraClient) backend.CallResourceHandler {
+func createProjectHandler(cassandraClient *CassandraClient, kafkaClient *KafkaClient) backend.CallResourceHandler {
 	log.DefaultLogger.Info("createProjectHandler()")
 	projectHandler := ProjectHandler{
 		cassandraClient: cassandraClient,
+		kafkaClient: kafkaClient,
 	}
 	return projectHandler
 }
@@ -66,4 +70,26 @@ func cassandraHosts() []string {
 		return strings.Split(hosts, ",")
 	}
 	return []string{"192.168.1.42"} // Default at Niclas' lab
+}
+
+func createKafkaClient() KafkaClient {
+	log.DefaultLogger.Info("createCassandraClient()")
+	hosts := kafkaHosts()
+	kafkaClient := KafkaClient{}
+	clientId, err := os.Hostname()
+	if err != nil {
+		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
+		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10);
+	}
+	kafkaClient.initializeKafka(hosts, clientId)
+	return kafkaClient
+}
+
+func kafkaHosts() []string {
+	log.DefaultLogger.Info("kafkaHosts()")
+	if hosts, ok := os.LookupEnv("KAFKA_HOSTS"); ok {
+		log.DefaultLogger.Info(fmt.Sprintf("Found Kafka Hosts:%s", hosts))
+		return strings.Split(hosts, ",")
+	}
+	return []string{"192.168.1.42:9092"} // Default at Niclas' lab
 }

@@ -13,6 +13,7 @@ import (
 )
 
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]+`
+const configurationTopic = "_configurations"
 
 var (
 	pathProject    = regexp.MustCompile(`projects/(?P<project>` + regexName + `)$`)
@@ -23,6 +24,7 @@ var (
 
 type ProjectHandler struct {
 	cassandraClient *CassandraClient
+	kafkaClient     *KafkaClient
 }
 
 func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
@@ -78,6 +80,35 @@ func (p ProjectHandler) addProject(ctx context.Context, request *backend.CallRes
 }
 
 func (p ProjectHandler) updateProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+	orgId, err := getOrgId(request, sender)
+	if err != nil {
+		return err
+	}
+	bodyRaw := request.Body
+	// TODO: validation in Grafana datasource before hitting the rest of the backend?
+	p.kafkaClient.send(configurationTopic, "updateProject:1:"+strconv.FormatInt(orgId, 10), bodyRaw)
+	return nil
+}
+
+func (p ProjectHandler) updateSubsystem(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+	orgId, err := getOrgId(request, sender)
+	if err != nil {
+		return err
+	}
+	bodyRaw := request.Body
+	// TODO: validation in Grafana datasource before hitting the rest of the backend?
+	p.kafkaClient.send(configurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), bodyRaw)
+	return nil
+}
+
+func (p ProjectHandler) updateDatapoint(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+	orgId, err := getOrgId(request, sender)
+	if err != nil {
+		return err
+	}
+	bodyRaw := request.Body
+	// TODO: validation in Grafana datasource before hitting the rest of the backend?
+	p.kafkaClient.send(configurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), bodyRaw)
 	return nil
 }
 
