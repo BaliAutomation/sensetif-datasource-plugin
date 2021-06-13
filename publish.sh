@@ -19,9 +19,9 @@ VERSION=`echo "$VERSIONS" | perl -Mversion -lane 'print join " ", sort { version
 echo $VERSION
 
 rm -rf dist 2>/dev/null
-go build -o ./dist/gpx_sensetif-datasource-plugin_linux_amd64 ./pkg
+go build -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
 yarn build || exit 1
-mv dist sensetif-datasource-plugin
-tar cf sensetif-datasource-plugin_$VERSION.tar.gz sensetif-datasource-plugin
-scp sensetif-datasource-plugin_$VERSION.tar.gz root@repo.sensetif.com:/var/www/repository/grafana-plugins/sensetif-datasource-plugin/
-rm -rf sensetif-datasource-plugin sensetif-datasource-plugin_$VERSION.tar.gz
+mv dist sensetif-datasource
+tar cf sensetif-datasource_$VERSION.tar.gz sensetif-datasource
+scp sensetif-datasource_$VERSION.tar.gz root@repo.sensetif.com:/var/www/repository/grafana-plugins/sensetif-datasource/
+rm -rf sensetif-datasource sensetif-datasource_$VERSION.tar.gz
