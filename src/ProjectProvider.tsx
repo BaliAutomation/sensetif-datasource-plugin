@@ -31,7 +31,7 @@ export class ProjectProvider extends PureComponent<Props, State> {
     this.setState({
       loadingStates: { ...this.state.loadingStates, loadProjects: true },
     });
-    const projects = await getBackendSrv().get('/api/plugins/sensetif-datasource-plugin/resources/projects');
+    const projects = await getBackendSrv().get('/api/plugins/sensetif-datasource/resources/projects');
     this.setState({
       projects,
       loadingStates: { ...this.state.loadingStates, loadProjects: Object.keys(projects).length === 0 },
