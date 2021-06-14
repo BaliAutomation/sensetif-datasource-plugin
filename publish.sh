@@ -21,7 +21,8 @@ echo $VERSION
 rm -rf dist 2>/dev/null
 go build -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
 yarn build || exit 1
-mv dist sensetif-datasource
+mkdir sensetif-datasource
+cp -r dist/* sensetif-datasource
 tar cf sensetif-datasource_$VERSION.tar.gz sensetif-datasource
 scp sensetif-datasource_$VERSION.tar.gz root@repo.sensetif.com:/var/www/repository/grafana-plugins/sensetif-datasource/
 rm -rf sensetif-datasource sensetif-datasource_$VERSION.tar.gz
