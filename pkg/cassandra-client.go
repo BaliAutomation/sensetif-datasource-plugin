@@ -66,6 +66,23 @@ func (cass *CassandraClient) queryTimeseries(org int64, sensor SensorRef, from t
 	return result
 }
 
+func (cass *CassandraClient) getProject(orgId int64, name string) *ProjectSettings {
+	log.DefaultLogger.Info("getProject:  " + strconv.FormatInt(orgId, 10) + "/" + name)
+	scanner := cass.session.
+		Query(fmt.Sprintf(projectQuery, cass.clusterConfig.Keyspace, projectsTablename), orgId, name).
+		Iter().
+		Scanner()
+	for scanner.Next() {
+		var rowValue ProjectSettings
+		err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.City, &rowValue.Country, &rowValue.Timezone, &rowValue.Geolocation)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		}
+		return &rowValue
+	}
+	return nil
+}
+
 func (cass *CassandraClient) findAllProjects(org int64) []ProjectSettings {
 	log.DefaultLogger.Info("findAllProjects:  " + strconv.FormatInt(org, 10))
 	var result []ProjectSettings
@@ -83,6 +100,24 @@ func (cass *CassandraClient) findAllProjects(org int64) []ProjectSettings {
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("Found: %d projects", len(result)))
 	return result
+}
+
+func (cass *CassandraClient) getSubsystem(org int64, projectName string, subsystem string) *SubsystemSettings {
+	log.DefaultLogger.Info("getSubsystem:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystem)
+	scanner := cass.session.
+		Query(fmt.Sprintf(subsystemQuery, cass.clusterConfig.Keyspace, subsystemsTablename), org, projectName, subsystem).
+		Iter().
+		Scanner()
+	for scanner.Next() {
+		var rowValue SubsystemSettings
+		rowValue.Project = projectName
+		err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.Locallocation)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		}
+		return &rowValue
+	}
+	return nil
 }
 
 func (cass *CassandraClient) findAllSubsystems(org int64, projectName string) []SubsystemSettings {
@@ -103,6 +138,26 @@ func (cass *CassandraClient) findAllSubsystems(org int64, projectName string) []
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("Found: %d subsystems", len(result)))
 	return result
+}
+
+func (cass *CassandraClient) getDatapoint(org int64, projectName string, subsystemName string, datapoint string) *DatapointSettings {
+	log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
+	scanner := cass.session.
+		Query(fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName, datapoint).
+		Iter().
+		Scanner()
+	for scanner.Next() {
+		var r DatapointSettings
+		r.Project = projectName
+		r.Project = subsystemName
+		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Credentials,
+			&r.ValueExpression, &r.Unit, &r.TimestampExpression, &r.TimestampType, &r.TimeToLive, &r.Scaling, &r.K, &r.M)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		}
+		return &r
+	}
+	return nil
 }
 
 func (cass *CassandraClient) findAllDatapoints(org int64, projectName string, subsystemName string) []DatapointSettings {
@@ -132,17 +187,23 @@ func (cass *CassandraClient) shutdown() {
 	cass.session.Close()
 }
 
-const datapointsTablename = "datapoints"
+const projectsTablename = "projects"
 
-const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpresssion,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
+const projectQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ? AND name = ?;"
+
+const projectsQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ?;"
 
 const subsystemsTablename = "subsystems"
 
+const subsystemQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? AND project = ? AND name = ?;"
+
 const subsystemsQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? AND project = ?;"
 
-const projectsTablename = "projects"
+const datapointsTablename = "datapoints"
 
-const projectsQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ?;"
+const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpresssion,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
+
+const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpresssion,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const timeseriesTablename = "timeseries"
 

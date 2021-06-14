@@ -18,8 +18,9 @@ const configurationTopic = "_configurations"
 var (
 	pathProject    = regexp.MustCompile(`projects/(?P<project>` + regexName + `)$`)
 	pathSubsystems = regexp.MustCompile(`projects/(?P<project>` + regexName + `)/subsystems$`)
-
+	pathSubsystem  = regexp.MustCompile(`projects/(?P<project>` + regexName + `)/subsystems/(?P<subsystem>` + regexName + `)$`)
 	pathDatapoints = regexp.MustCompile(`projects/(?P<project>` + regexName + `)/subsystems/(?P<subsystem>` + regexName + `)/datapoints$`)
+	pathDatapoint  = regexp.MustCompile(`projects/(?P<project>` + regexName + `)/subsystems/(?P<subsystem>` + regexName + `)/datapoints//(?P<datapoint>` + regexName + `)$`)
 )
 
 type ProjectHandler struct {
@@ -28,34 +29,60 @@ type ProjectHandler struct {
 }
 
 func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	log.DefaultLogger.Info("Resource Request: " + fmt.Sprintf("%s %s", request.Method, request.Path))
+	orgId, err := getOrgId(request, sender)
+	if err != nil {
+		return err
+	}
+	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, OrgId: %d", request.URL, request.Path, orgId))
 
-	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s", request.URL, request.Path))
-
-	if request.URL == "projects" && http.MethodPost == request.Method {
-		return p.addProject(ctx, request, sender)
+	if http.MethodGet == request.Method {
+		if request.URL == "projects" {
+			return p.getProjects(orgId, sender)
+		}
+		if pathProject.Match([]byte(request.URL)) {
+			projectName := pathProject.FindStringSubmatch(request.URL)[1]
+			return p.getProject(orgId, projectName, sender)
+		}
+		if pathSubsystem.Match([]byte(request.URL)) {
+			match := pathSubsystems.FindStringSubmatch(request.URL)
+			projectName := match[1]
+			subsystemName := match[2]
+			return p.getSubsystem(orgId, projectName, subsystemName, sender)
+		}
+		if pathSubsystems.Match([]byte(request.URL)) {
+			projectName := pathSubsystems.FindStringSubmatch(request.URL)[1]
+			return p.getSubsystems(orgId, projectName, sender)
+		}
+		if pathDatapoint.Match([]byte(request.URL)) {
+			match := pathSubsystems.FindStringSubmatch(request.URL)
+			projectName := match[1]
+			subsystemName := match[2]
+			datapointName := match[3]
+			return p.getDatapoint(orgId, projectName, subsystemName, datapointName, sender)
+		}
+		if pathDatapoints.Match([]byte(request.URL)) {
+			match := pathSubsystems.FindStringSubmatch(request.URL)
+			projectName := match[1]
+			subsystemName := match[2]
+			return p.getDatapoints(orgId, projectName, subsystemName, sender)
+		}
 	}
 
-	if request.URL == "projects" && http.MethodGet == request.Method {
-		return p.getProjects(ctx, request, sender)
+	if http.MethodPut == request.Method {
+		bodyRaw := request.Body
+		if pathProject.Match([]byte(request.URL)) {
+			p.updateProject(orgId, bodyRaw)
+			return nil
+		}
+		if pathSubsystems.Match([]byte(request.URL)) {
+			p.updateSubsystem(orgId, bodyRaw)
+			return nil
+		}
+		if pathDatapoints.Match([]byte(request.URL)) {
+			p.updateDatapoint(orgId, bodyRaw)
+			return nil
+		}
 	}
-
-	if request.URL == "projects" && http.MethodPost == request.Method {
-		return p.updateProject(ctx, request, sender)
-	}
-
-	if pathDatapoints.Match([]byte(request.URL)) && http.MethodGet == request.Method {
-		return p.getDatapoints(ctx, request, sender)
-	}
-
-	if pathSubsystems.Match([]byte(request.URL)) && http.MethodGet == request.Method {
-		return p.getSubsystems(ctx, request, sender)
-	}
-
-	if pathProject.Match([]byte(request.URL)) && http.MethodGet == request.Method {
-		return p.getProject(ctx, request, sender)
-	}
-
 	return p.notFound(ctx, request, sender)
 }
 
@@ -79,71 +106,55 @@ func (p ProjectHandler) addProject(ctx context.Context, request *backend.CallRes
 	)
 }
 
-func (p ProjectHandler) updateProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	orgId, err := getOrgId(request, sender)
-	if err != nil {
-		return err
-	}
-	bodyRaw := request.Body
+func (p ProjectHandler) updateProject(orgId int64, body []byte) {
 	// TODO: validation in Grafana datasource before hitting the rest of the backend?
-	p.kafkaClient.send(configurationTopic, "updateProject:1:"+strconv.FormatInt(orgId, 10), bodyRaw)
-	return nil
+	p.kafkaClient.send(configurationTopic, "updateProject:1:"+strconv.FormatInt(orgId, 10), body)
 }
 
-func (p ProjectHandler) updateSubsystem(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	orgId, err := getOrgId(request, sender)
-	if err != nil {
-		return err
-	}
-	bodyRaw := request.Body
+func (p ProjectHandler) updateSubsystem(orgId int64, body []byte) {
 	// TODO: validation in Grafana datasource before hitting the rest of the backend?
-	p.kafkaClient.send(configurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), bodyRaw)
-	return nil
+	p.kafkaClient.send(configurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
 }
 
-func (p ProjectHandler) updateDatapoint(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	orgId, err := getOrgId(request, sender)
-	if err != nil {
-		return err
-	}
-	bodyRaw := request.Body
+func (p ProjectHandler) updateDatapoint(orgId int64, body []byte) {
 	// TODO: validation in Grafana datasource before hitting the rest of the backend?
-	p.kafkaClient.send(configurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), bodyRaw)
-	return nil
+	p.kafkaClient.send(configurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
 }
 
-func (p ProjectHandler) getProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	match := pathProject.FindStringSubmatch(request.URL)
-	log.DefaultLogger.Info(fmt.Sprintf("[getProject] %v ", match))
-
-	responseRaw := `{
-			  "name": "sbc1_malmo",
-			  "title": "Brf Benzelius",
-			  "city": "Lund",
-			  "geolocation": "@55.884878,13.156352,13z",
-			  "subsystems": []
-		}`
-
-	err := sender.Send(&backend.CallResourceResponse{
-		Status:  http.StatusOK,
-		Headers: make(map[string][]string),
-		Body:    []byte(responseRaw),
-	})
-
-	if err != nil {
-		log.DefaultLogger.Error("Unable to write projects to client.")
-		return err
+func (p ProjectHandler) getProject(orgId int64, projectName string, sender backend.CallResourceResponseSender) error {
+	project := p.cassandraClient.getProject(orgId, projectName)
+	if project == nil {
+		project = &ProjectSettings{}
+		project.Name = "sbc1_malmo"
+		project.Title = "Brf Benzelius"
+		project.City = "Lund"
+		project.Geolocation = "@55.884878,13.156352,13z"
 	}
-
-	log.DefaultLogger.Info("Projects sent to client.")
-	return nil
+	bytes, err := JSON.Marshal(project)
+	if err != nil {
+		err = sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusUnprocessableEntity,
+			Headers: make(map[string][]string),
+			Body:    []byte("Unable to marshal the entity. Probably wrong format: " + err.Error()),
+		})
+	} else {
+		err = sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusOK,
+			Headers: make(map[string][]string),
+			Body:    bytes,
+		})
+	}
+	if err != nil {
+		log.DefaultLogger.Error("Unable to write project to client.")
+		return err
+	} else {
+		log.DefaultLogger.Info("Project '" + projectName + "' sent to client.")
+		return nil
+	}
 }
-func (p ProjectHandler) getProjects(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 
-	orgId, err := getOrgId(request, sender)
-	if err != nil {
-		return err
-	}
+func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResponseSender) error {
+
 	projects := p.cassandraClient.findAllProjects(orgId)
 	if len(projects) == 0 {
 		var proj1 ProjectSettings
@@ -184,7 +195,7 @@ func (p ProjectHandler) getProjects(ctx context.Context, request *backend.CallRe
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	err = sender.Send(&backend.CallResourceResponse{
+	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
 		Body:    rawJson,
@@ -199,28 +210,54 @@ func (p ProjectHandler) getProjects(ctx context.Context, request *backend.CallRe
 	return nil
 }
 
-func (p ProjectHandler) getSubsystems(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	match := pathSubsystems.FindStringSubmatch(request.URL)
-	log.DefaultLogger.Info(fmt.Sprintf("[getSubsystems] %v ", match))
-
-	orgId, err := getOrgId(request, sender)
-	if err != nil {
-		return err
+func (p ProjectHandler) getSubsystem(orgId int64, project string, subsystemName string, sender backend.CallResourceResponseSender) error {
+	subsystem := p.cassandraClient.getSubsystem(orgId, project, subsystemName)
+	if subsystem == nil {
+		subsystem = &SubsystemSettings{}
+		subsystem.Project = project
+		subsystem.Name = subsystemName
+		subsystem.Title = "District Heating intake"
+		subsystem.Locallocation = "BV-23"
 	}
-	subsystems := p.cassandraClient.findAllSubsystems(orgId, match[1])
+	bytes, err := JSON.Marshal(subsystem)
+	if err != nil {
+		err = sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusUnprocessableEntity,
+			Headers: make(map[string][]string),
+			Body:    []byte("Unable to marshal the entity. Probably wrong format: " + err.Error()),
+		})
+	} else {
+		err = sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusOK,
+			Headers: make(map[string][]string),
+			Body:    bytes,
+		})
+	}
+	if err != nil {
+		log.DefaultLogger.Error("Unable to write subsystem to client.")
+		return err
+	} else {
+		log.DefaultLogger.Info("Subsystem '" + subsystemName + "' sent to client.")
+		return nil
+	}
+}
+
+func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backend.CallResourceResponseSender) error {
+
+	subsystems := p.cassandraClient.findAllSubsystems(orgId, project)
 	if len(subsystems) == 0 {
 		var sub1 SubsystemSettings
-		sub1.Project = match[1]
+		sub1.Project = project
 		sub1.Name = "5601"
 		sub1.Title = "District Heating intake"
 		sub1.Locallocation = "BV-23"
 		var sub2 SubsystemSettings
-		sub2.Project = match[1]
+		sub2.Project = project
 		sub2.Name = "5701"
 		sub2.Title = "Ventilation TA1"
 		sub2.Locallocation = "3-10"
 		var sub3 SubsystemSettings
-		sub3.Project = match[1]
+		sub3.Project = project
 		sub3.Name = "5701"
 		sub3.Title = "Ventilation TA2"
 		sub3.Locallocation = "3-50"
@@ -231,7 +268,7 @@ func (p ProjectHandler) getSubsystems(ctx context.Context, request *backend.Call
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	err = sender.Send(&backend.CallResourceResponse{
+	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
 		Body:    rawJson,
@@ -244,19 +281,53 @@ func (p ProjectHandler) getSubsystems(ctx context.Context, request *backend.Call
 	return nil
 }
 
-func (p ProjectHandler) getDatapoints(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	match := pathDatapoints.FindStringSubmatch(request.URL)
-	log.DefaultLogger.Info(fmt.Sprintf("[getDatapoints] %v ", match))
-
-	orgId, err := getOrgId(request, sender)
-	if err != nil {
-		return err
+func (p ProjectHandler) getDatapoint(orgId int64, project string, subsystem string, datapointName string, sender backend.CallResourceResponseSender) error {
+	datapoint := p.cassandraClient.getDatapoint(orgId, project, subsystem, datapointName)
+	if datapoint == nil {
+		datapoint = &DatapointSettings{}
+		datapoint.Project = project
+		datapoint.Subsystem = subsystem
+		datapoint.Name = datapointName
+		datapoint.Interval = Thirty_minutes
+		datapoint.URL = "https://api.darksky.net/forecast/615bfb2b3db89dea530f3fb6e0c9c38c/55.8794518,13.1609417"
+		datapoint.AuthenticationType = none
+		datapoint.Format = json
+		datapoint.ValueExpression = "$.currently.temperature"
+		datapoint.Unit = "ºC"
+		datapoint.Scaling = fToC
+		datapoint.TimeToLive = d
+		datapoint.TimestampType = epochSeconds
+		datapoint.TimestampExpression = "$.currently.time"
 	}
-	datapoints := p.cassandraClient.findAllDatapoints(orgId, match[1], match[2])
+	bytes, err := JSON.Marshal(datapoint)
+	if err != nil {
+		err = sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusUnprocessableEntity,
+			Headers: make(map[string][]string),
+			Body:    []byte("Unable to marshal the entity. Probably wrong format: " + err.Error()),
+		})
+	} else {
+		err = sender.Send(&backend.CallResourceResponse{
+			Status:  http.StatusOK,
+			Headers: make(map[string][]string),
+			Body:    bytes,
+		})
+	}
+	if err != nil {
+		log.DefaultLogger.Error("Unable to write datapoint to client.")
+		return err
+	} else {
+		log.DefaultLogger.Info("Project '" + datapointName + "' sent to client.")
+		return nil
+	}
+}
+
+func (p ProjectHandler) getDatapoints(orgId int64, project string, subsystem string, sender backend.CallResourceResponseSender) error {
+	datapoints := p.cassandraClient.findAllDatapoints(orgId, project, subsystem)
 	if len(datapoints) == 0 {
 		var dp1 DatapointSettings
-		dp1.Project = match[1]
-		dp1.Subsystem = match[2]
+		dp1.Project = project
+		dp1.Subsystem = subsystem
 		dp1.Name = "heating"
 		dp1.Interval = Thirty_minutes
 		dp1.URL = "https://api.darksky.net/forecast/615bfb2b3db89dea530f3fb6e0c9c38c/55.8794518,13.1609417"
@@ -269,8 +340,8 @@ func (p ProjectHandler) getDatapoints(ctx context.Context, request *backend.Call
 		dp1.TimestampType = epochSeconds
 		dp1.TimestampExpression = "$.currently.time"
 		var dp2 DatapointSettings
-		dp2.Project = match[1]
-		dp2.Subsystem = match[2]
+		dp2.Project = project
+		dp2.Subsystem = subsystem
 		dp2.Name = "heating"
 		dp2.Interval = Thirty_minutes
 		dp2.URL = "https://api.darksky.net/forecast/615bfb2b3db89dea530f3fb6e0c9c38c/55.8794518,13.1609417"
@@ -291,7 +362,7 @@ func (p ProjectHandler) getDatapoints(ctx context.Context, request *backend.Call
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	err = sender.Send(&backend.CallResourceResponse{
+	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
 		Body:    rawJson,
