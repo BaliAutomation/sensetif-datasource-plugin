@@ -24,6 +24,8 @@ func (kaf *KafkaClient) send(topic string, key string, value []byte) {
 	}, delivery_chan)
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Failed to send a message: %s\n%s : %+v\n", err, key, value))
+	} else {
+		log.DefaultLogger.Info(fmt.Sprintf("Sent message to key %s on topic %s", key, topic))
 	}
 }
 
