@@ -4,6 +4,7 @@ import (
 	"context"
 	JSON "encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -74,7 +75,8 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 		return response
 	}
 
-	log.DefaultLogger.Info("Cassandra client" + fmt.Sprintf("%+v", sds.cassandraClient) + fmt.Sprintf("%+v", sds))
+	log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
+	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model))
 	timeseries := sds.cassandraClient.queryTimeseries(orgId, model, from, to)
 
 	times := []time.Time{}
