@@ -29,12 +29,16 @@ func (kaf *KafkaClient) send(topic string, key string, value []byte) {
 
 func (kaf *KafkaClient) initializeKafka(hosts []string, clientId string) {
 	var err error
-		kaf.p, err = kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers": strings.Join(hosts, ","),
-		"client.id":         clientId,
-		"acks":              "all"})
-
+	config := kafka.ConfigMap{
+		"bootstrap.servers":  strings.Join(hosts, ","),
+		"client.id":          clientId,
+		"acks":               "all",
+		"enable.idempotence": "true",
+	}
+	kaf.p, err = kafka.NewProducer(&config)
 	if err != nil {
-		fmt.Printf("Failed to create producer: %s\n", err)
+		log.DefaultLogger.Error("Failed to create producer: " + err.Error())
+	} else {
+		log.DefaultLogger.Info(fmt.Sprintf("Created Kafka producer: %+v, %+v", config, kaf.p))
 	}
 }

@@ -16,7 +16,7 @@ func main() {
 	log.DefaultLogger.Info("Starting Sensetif plugin")
 	hosts, cassandraClient := createCassandraClient()
 	kafkaClient := createKafkaClient()
-	resourceHandler := createProjectHandler(&cassandraClient, &kafkaClient)
+	resourceHandler := createProjectHandler(&cassandraClient, kafkaClient)
 	ds := createDatasource(&cassandraClient, hosts)
 	startServing(ds, resourceHandler)
 }
@@ -50,7 +50,7 @@ func createProjectHandler(cassandraClient *CassandraClient, kafkaClient *KafkaCl
 	log.DefaultLogger.Info("createProjectHandler()")
 	projectHandler := ProjectHandler{
 		cassandraClient: cassandraClient,
-		kafkaClient: kafkaClient,
+		kafkaClient:     kafkaClient,
 	}
 	return projectHandler
 }
@@ -72,17 +72,17 @@ func cassandraHosts() []string {
 	return []string{"192.168.1.42"} // Default at Niclas' lab
 }
 
-func createKafkaClient() KafkaClient {
+func createKafkaClient() *KafkaClient {
 	log.DefaultLogger.Info("createCassandraClient()")
 	hosts := kafkaHosts()
 	kafkaClient := KafkaClient{}
 	clientId, err := os.Hostname()
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
-		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10);
+		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
 	}
 	kafkaClient.initializeKafka(hosts, clientId)
-	return kafkaClient
+	return &kafkaClient
 }
 
 func kafkaHosts() []string {

@@ -72,38 +72,34 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 		bodyRaw := request.Body
 		if pathProject.Match([]byte(request.URL)) {
 			p.updateProject(orgId, bodyRaw)
+			sendAccepted(sender)
 			return nil
 		}
 		if pathSubsystems.Match([]byte(request.URL)) {
 			p.updateSubsystem(orgId, bodyRaw)
+			sendAccepted(sender)
 			return nil
 		}
 		if pathDatapoints.Match([]byte(request.URL)) {
 			p.updateDatapoint(orgId, bodyRaw)
+			sendAccepted(sender)
 			return nil
 		}
 	}
 	return p.notFound(ctx, request, sender)
 }
 
-func (p ProjectHandler) addProject(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	bodyRaw := request.Body
-	log.DefaultLogger.Info("[addProject]")
-
-	project := ProjectSettings{}
-	if err := JSON.Unmarshal(bodyRaw, &project); err != nil {
-		log.DefaultLogger.Error(fmt.Sprintf("[addProject] unmarshaling. Raw project: %s", string(bodyRaw)))
-		return err
-	}
-
-	return sender.Send(
+func sendAccepted(sender backend.CallResourceResponseSender) {
+	empty := []byte{}
+	err := sender.Send(
 		&backend.CallResourceResponse{
-			Status: http.StatusCreated,
-			Body: []byte(`{
-				"name":` + project.Name + `
-			}`),
+			Status: http.StatusAccepted,
+			Body:   empty,
 		},
 	)
+	if err != nil {
+		log.DefaultLogger.Error("Unable to send ACCEPTED reply" + err.Error())
+	}
 }
 
 func (p ProjectHandler) updateProject(orgId int64, body []byte) {
