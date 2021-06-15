@@ -33,7 +33,7 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 	if err != nil {
 		return err
 	}
-	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, OrgId: %d", request.URL, request.Path, orgId))
+	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s, OrgId: %d", request.URL, request.Path, request.Method, orgId))
 
 	if http.MethodGet == request.Method {
 		if request.URL == "projects" {
