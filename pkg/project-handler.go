@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -64,13 +65,15 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 			projectName := match[1]
 			subsystemName := match[2]
 			datapointName := match[3]
-			log.DefaultLogger.Info("77777-->" + projectName + "/" + datapointName)
+			log.DefaultLogger.Info("66666-->" + projectName + "/" + datapointName)
 			return p.getDatapoint(orgId, projectName, subsystemName, datapointName, sender)
 		}
 		if pathDatapoints.Match([]byte(request.URL)) {
 			log.DefaultLogger.Info("77777")
 			match := pathSubsystems.FindStringSubmatch(request.URL)
+			log.DefaultLogger.Info("77777-->" + strings.Join(match, ","))
 			projectName := match[1]
+			log.DefaultLogger.Info("77777-->" + projectName)
 			subsystemName := match[2]
 			log.DefaultLogger.Info("77777-->" + projectName + "/" + subsystemName)
 			return p.getDatapoints(orgId, projectName, subsystemName, sender)
