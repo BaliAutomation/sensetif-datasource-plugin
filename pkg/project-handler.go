@@ -36,34 +36,43 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s, OrgId: %d", request.URL, request.Path, request.Method, orgId))
 
 	if http.MethodGet == request.Method {
+		log.DefaultLogger.Info("11111")
 		if request.URL == "projects" {
+			log.DefaultLogger.Info("22222")
 			return p.getProjects(orgId, sender)
 		}
 		if pathProject.Match([]byte(request.URL)) {
+			log.DefaultLogger.Info("33333")
 			projectName := pathProject.FindStringSubmatch(request.URL)[1]
 			return p.getProject(orgId, projectName, sender)
 		}
 		if pathSubsystem.Match([]byte(request.URL)) {
+			log.DefaultLogger.Info("44444")
 			match := pathSubsystems.FindStringSubmatch(request.URL)
 			projectName := match[1]
 			subsystemName := match[2]
 			return p.getSubsystem(orgId, projectName, subsystemName, sender)
 		}
 		if pathSubsystems.Match([]byte(request.URL)) {
+			log.DefaultLogger.Info("55555")
 			projectName := pathSubsystems.FindStringSubmatch(request.URL)[1]
 			return p.getSubsystems(orgId, projectName, sender)
 		}
 		if pathDatapoint.Match([]byte(request.URL)) {
+			log.DefaultLogger.Info("66666")
 			match := pathSubsystems.FindStringSubmatch(request.URL)
 			projectName := match[1]
 			subsystemName := match[2]
 			datapointName := match[3]
+			log.DefaultLogger.Info("77777-->" + projectName + "/" + datapointName)
 			return p.getDatapoint(orgId, projectName, subsystemName, datapointName, sender)
 		}
 		if pathDatapoints.Match([]byte(request.URL)) {
+			log.DefaultLogger.Info("77777")
 			match := pathSubsystems.FindStringSubmatch(request.URL)
 			projectName := match[1]
 			subsystemName := match[2]
+			log.DefaultLogger.Info("77777-->" + projectName + "/" + subsystemName)
 			return p.getDatapoints(orgId, projectName, subsystemName, sender)
 		}
 	}
