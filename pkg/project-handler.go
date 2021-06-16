@@ -36,49 +36,69 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s, OrgId: %d", request.URL, request.Path, request.Method, orgId))
 
 	if http.MethodGet == request.Method {
-		log.DefaultLogger.Info("11111")
 		if request.URL == "projects" {
-			log.DefaultLogger.Info("22222")
 			return p.getProjects(orgId, sender)
 		}
 		if pathProject.Match([]byte(request.URL)) {
-			log.DefaultLogger.Info("33333")
-			projectName := pathProject.FindStringSubmatch(request.URL)[1]
-			return p.getProject(orgId, projectName, sender)
+			match := pathProject.FindStringSubmatch(request.URL)
+			if match == nil {
+				sender.Send(&backend.CallResourceResponse{
+					Status: http.StatusBadRequest,
+				})
+			} else {
+				projectName := match[1]
+				return p.getProject(orgId, projectName, sender)
+			}
 		}
 		if pathSubsystem.Match([]byte(request.URL)) {
-			log.DefaultLogger.Info("44444")
 			match := pathSubsystems.FindStringSubmatch(request.URL)
-			projectName := match[1]
-			subsystemName := match[2]
-			return p.getSubsystem(orgId, projectName, subsystemName, sender)
+			if match == nil {
+				sender.Send(&backend.CallResourceResponse{
+					Status: http.StatusBadRequest,
+				})
+			} else {
+				projectName := match[1]
+				subsystemName := match[2]
+				return p.getSubsystem(orgId, projectName, subsystemName, sender)
+			}
 		}
 		if pathSubsystems.Match([]byte(request.URL)) {
-			log.DefaultLogger.Info("55555")
-			projectName := pathSubsystems.FindStringSubmatch(request.URL)[1]
-			return p.getSubsystems(orgId, projectName, sender)
+			match := pathSubsystems.FindStringSubmatch(request.URL)
+			if match == nil {
+				sender.Send(&backend.CallResourceResponse{
+					Status: http.StatusBadRequest,
+				})
+			} else {
+				projectName := match[1]
+				return p.getSubsystems(orgId, projectName, sender)
+			}
 		}
 		if pathDatapoint.Match([]byte(request.URL)) {
-			log.DefaultLogger.Info("66666")
 			match := pathSubsystems.FindStringSubmatch(request.URL)
-			projectName := match[1]
-			subsystemName := match[2]
-			datapointName := match[3]
-			log.DefaultLogger.Info("66666-->" + projectName + "/" + datapointName)
-			return p.getDatapoint(orgId, projectName, subsystemName, datapointName, sender)
+			if match == nil {
+				sender.Send(&backend.CallResourceResponse{
+					Status: http.StatusBadRequest,
+				})
+			} else {
+				projectName := match[1]
+				subsystemName := match[2]
+				datapointName := match[3]
+				log.DefaultLogger.Info("66666-->" + projectName + "/" + datapointName)
+				return p.getDatapoint(orgId, projectName, subsystemName, datapointName, sender)
+			}
 		}
 		if pathDatapoints.Match([]byte(request.URL)) {
-			length := len(request.URL)
-			log.DefaultLogger.Info("77777-->" + strconv.FormatInt(int64(length), 10))
 			request.URL = strings.Trim(request.URL, " \t\n\r")
-			log.DefaultLogger.Info("77777-->" + strconv.FormatInt(int64(length), 10))
-			match := pathSubsystems.FindStringSubmatch(request.URL)
-			log.DefaultLogger.Info("77777-->" + match[0])
-			projectName := match[1]
-			log.DefaultLogger.Info("77777-->" + projectName)
-			subsystemName := match[2]
-			log.DefaultLogger.Info("77777-->" + projectName + "/" + subsystemName)
-			return p.getDatapoints(orgId, projectName, subsystemName, sender)
+			match := pathDatapoints.FindStringSubmatch(request.URL)
+			if match == nil {
+				sender.Send(&backend.CallResourceResponse{
+					Status: http.StatusBadRequest,
+				})
+			} else {
+				projectName := match[1]
+				subsystemName := match[2]
+				return p.getDatapoints(orgId, projectName, subsystemName, sender)
+			}
 		}
 	}
 
@@ -91,39 +111,51 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 		}
 		if pathSubsystems.Match([]byte(request.URL)) {
 			match := pathSubsystems.FindStringSubmatch(request.URL)
-			projectName := match[1]
-			var subsystem SubsystemSettings
-			err := JSON.Unmarshal(bodyRaw, &subsystem)
-			if err != nil {
-				return err
+			if match == nil {
+				sender.Send(&backend.CallResourceResponse{
+					Status: http.StatusBadRequest,
+				})
+			} else {
+				projectName := match[1]
+				var subsystem SubsystemSettings
+				err := JSON.Unmarshal(bodyRaw, &subsystem)
+				if err != nil {
+					return err
+				}
+				subsystem.Project = projectName
+				bodyRaw, err = JSON.Marshal(subsystem)
+				if err != nil {
+					return err
+				}
+				p.updateSubsystem(orgId, bodyRaw)
+				sendAccepted(sender)
+				return nil
 			}
-			subsystem.Project = projectName
-			bodyRaw, err = JSON.Marshal(subsystem)
-			if err != nil {
-				return err
-			}
-			p.updateSubsystem(orgId, bodyRaw)
-			sendAccepted(sender)
-			return nil
 		}
 		if pathDatapoints.Match([]byte(request.URL)) {
 			match := pathDatapoints.FindStringSubmatch(request.URL)
-			projectName := match[1]
-			subsystemName := match[2]
-			var datapoint DatapointSettings
-			err := JSON.Unmarshal(bodyRaw, &datapoint)
-			if err != nil {
-				return err
+			if match == nil {
+				sender.Send(&backend.CallResourceResponse{
+					Status: http.StatusBadRequest,
+				})
+			} else {
+				projectName := match[1]
+				subsystemName := match[2]
+				var datapoint DatapointSettings
+				err := JSON.Unmarshal(bodyRaw, &datapoint)
+				if err != nil {
+					return err
+				}
+				datapoint.Project = projectName
+				datapoint.Subsystem = subsystemName
+				bodyRaw, err = JSON.Marshal(datapoint)
+				if err != nil {
+					return err
+				}
+				p.updateDatapoint(orgId, bodyRaw)
+				sendAccepted(sender)
+				return nil
 			}
-			datapoint.Project = projectName
-			datapoint.Subsystem = subsystemName
-			bodyRaw, err = JSON.Marshal(datapoint)
-			if err != nil {
-				return err
-			}
-			p.updateDatapoint(orgId, bodyRaw)
-			sendAccepted(sender)
-			return nil
 		}
 	}
 	return p.notFound(ctx, request, sender)
