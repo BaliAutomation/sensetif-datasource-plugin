@@ -4,13 +4,11 @@ import (
 	"context"
 	JSON "encoding/json"
 	"fmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
-
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]+`
@@ -71,7 +69,7 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 		if pathDatapoints.Match([]byte(request.URL)) {
 			log.DefaultLogger.Info("77777")
 			match := pathSubsystems.FindStringSubmatch(request.URL)
-			log.DefaultLogger.Info("77777-->" + strings.Join(match, ","))
+			log.DefaultLogger.Info("77777-->" + match[0])
 			projectName := match[1]
 			log.DefaultLogger.Info("77777-->" + projectName)
 			subsystemName := match[2]
