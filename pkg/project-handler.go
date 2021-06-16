@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]+`
@@ -67,7 +68,10 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 			return p.getDatapoint(orgId, projectName, subsystemName, datapointName, sender)
 		}
 		if pathDatapoints.Match([]byte(request.URL)) {
-			log.DefaultLogger.Info("77777")
+			length := len(request.URL)
+			log.DefaultLogger.Info("77777-->" + strconv.FormatInt(int64(length), 10))
+			request.URL = strings.Trim(request.URL, " \t\n\r")
+			log.DefaultLogger.Info("77777-->" + strconv.FormatInt(int64(length), 10))
 			match := pathSubsystems.FindStringSubmatch(request.URL)
 			log.DefaultLogger.Info("77777-->" + match[0])
 			projectName := match[1]
