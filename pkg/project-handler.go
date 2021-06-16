@@ -76,11 +76,37 @@ func (p ProjectHandler) CallResource(ctx context.Context, request *backend.CallR
 			return nil
 		}
 		if pathSubsystems.Match([]byte(request.URL)) {
+			match := pathSubsystems.FindStringSubmatch(request.URL)
+			projectName := match[1]
+			var subsystem SubsystemSettings
+			err := JSON.Unmarshal(bodyRaw, &subsystem)
+			if err != nil {
+				return err
+			}
+			subsystem.Project = projectName
+			bodyRaw, err = JSON.Marshal(subsystem)
+			if err != nil {
+				return err
+			}
 			p.updateSubsystem(orgId, bodyRaw)
 			sendAccepted(sender)
 			return nil
 		}
 		if pathDatapoints.Match([]byte(request.URL)) {
+			match := pathDatapoints.FindStringSubmatch(request.URL)
+			projectName := match[1]
+			subsystemName := match[2]
+			var datapoint DatapointSettings
+			err := JSON.Unmarshal(bodyRaw, &datapoint)
+			if err != nil {
+				return err
+			}
+			datapoint.Project = projectName
+			datapoint.Subsystem = subsystemName
+			bodyRaw, err = JSON.Marshal(datapoint)
+			if err != nil {
+				return err
+			}
 			p.updateDatapoint(orgId, bodyRaw)
 			sendAccepted(sender)
 			return nil
