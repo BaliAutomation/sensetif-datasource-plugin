@@ -224,40 +224,6 @@ func (p ProjectHandler) getProject(orgId int64, projectName string, sender backe
 func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResponseSender) error {
 
 	projects := p.cassandraClient.findAllProjects(orgId)
-	if len(projects) == 0 {
-		var proj1 ProjectSettings
-		proj1.Name = "sbc1_malmo"
-		proj1.Title = "Brf Benzelius"
-		proj1.City = "Lund"
-		proj1.Country = "Sverige"
-		proj1.Geolocation = "@55.884878,13.156352,13z"
-		var proj2 ProjectSettings
-		proj2.Name = "sbc2_malmo"
-		proj2.Title = "Brf Lillbragden"
-		proj2.City = "Malmö"
-		proj2.Country = "Sverige"
-		proj2.Geolocation = "@55.884878,13.156352,13z"
-		var proj3 ProjectSettings
-		proj3.Name = "sbc3_malmo"
-		proj3.Title = "Brf Majoren"
-		proj3.City = "Malmö"
-		proj3.Country = "Sverige"
-		proj3.Geolocation = "@55.884878,13.156352,13z"
-		var proj4 ProjectSettings
-		proj4.Name = "sbc4_malmo"
-		proj4.Title = "Brf Schougen"
-		proj4.City = "Malmö"
-		proj4.Country = "Sverige"
-		proj4.Geolocation = "@55.884878,13.156352,13z"
-		var proj5 ProjectSettings
-		proj5.Name = "sbc5_malmo"
-		proj5.Title = "Brf Eslövsgården"
-		proj5.City = "Malmö"
-		proj5.Country = "Sverige"
-		proj5.Geolocation = "@55.884878,13.156352,13z"
-		projects = append(projects, proj1, proj2, proj3, proj4, proj5)
-	}
-
 	rawJson, err2 := JSON.Marshal(projects)
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
@@ -313,24 +279,6 @@ func (p ProjectHandler) getSubsystem(orgId int64, project string, subsystemName 
 func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backend.CallResourceResponseSender) error {
 
 	subsystems := p.cassandraClient.findAllSubsystems(orgId, project)
-	if len(subsystems) == 0 {
-		var sub1 SubsystemSettings
-		sub1.Project = project
-		sub1.Name = "5601"
-		sub1.Title = "District Heating intake"
-		sub1.Locallocation = "BV-23"
-		var sub2 SubsystemSettings
-		sub2.Project = project
-		sub2.Name = "5701"
-		sub2.Title = "Ventilation TA1"
-		sub2.Locallocation = "3-10"
-		var sub3 SubsystemSettings
-		sub3.Project = project
-		sub3.Name = "5701"
-		sub3.Title = "Ventilation TA2"
-		sub3.Locallocation = "3-50"
-		subsystems = append(subsystems, sub1, sub2, sub3)
-	}
 	rawJson, err2 := JSON.Marshal(subsystems)
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
@@ -392,39 +340,6 @@ func (p ProjectHandler) getDatapoint(orgId int64, project string, subsystem stri
 
 func (p ProjectHandler) getDatapoints(orgId int64, project string, subsystem string, sender backend.CallResourceResponseSender) error {
 	datapoints := p.cassandraClient.findAllDatapoints(orgId, project, subsystem)
-	if len(datapoints) == 0 {
-		var dp1 DatapointSettings
-		dp1.Project = project
-		dp1.Subsystem = subsystem
-		dp1.Name = "heating"
-		dp1.Interval = Thirty_minutes
-		dp1.URL = "https://api.darksky.net/forecast/615bfb2b3db89dea530f3fb6e0c9c38c/55.8794518,13.1609417"
-		dp1.AuthenticationType = none
-		dp1.Format = json
-		dp1.ValueExpression = "$.currently.temperature"
-		dp1.Unit = "ºC"
-		dp1.Scaling = fToC
-		dp1.TimeToLive = d
-		dp1.TimestampType = epochSeconds
-		dp1.TimestampExpression = "$.currently.time"
-		var dp2 DatapointSettings
-		dp2.Project = project
-		dp2.Subsystem = subsystem
-		dp2.Name = "heating"
-		dp2.Interval = Thirty_minutes
-		dp2.URL = "https://api.darksky.net/forecast/615bfb2b3db89dea530f3fb6e0c9c38c/55.8794518,13.1609417"
-		dp2.AuthenticationType = none
-		dp2.Format = json
-		dp2.ValueExpression = "$.currently.humidity"
-		dp2.Unit = "%"
-		dp2.Scaling = lin
-		dp2.K = 1.0
-		dp2.M = 0.0
-		dp2.TimeToLive = d
-		dp2.TimestampType = epochSeconds
-		dp2.TimestampExpression = "$.currently.time"
-		datapoints = append(datapoints, dp1, dp2)
-	}
 	rawJson, err2 := JSON.Marshal(datapoints)
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
