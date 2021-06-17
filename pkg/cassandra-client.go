@@ -202,9 +202,9 @@ const subsystemsQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? A
 
 const datapointsTablename = "datapoints"
 
-const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
+const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
 
-const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
+const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const timeseriesTablename = "timeseries"
 
