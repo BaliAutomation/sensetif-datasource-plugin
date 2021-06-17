@@ -163,12 +163,12 @@ func (cass *CassandraClient) getDatapoint(org int64, projectName string, subsyst
 func (cass *CassandraClient) findAllDatapoints(org int64, projectName string, subsystemName string) []DatapointSettings {
 	log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
 	var result []DatapointSettings
+	query := fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename)
 	scanner := cass.session.
-		Query(fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName).
+		Query(query, org, projectName, subsystemName).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		log.DefaultLogger.Info("Datapoint!")
 		var r DatapointSettings
 		r.Project = projectName
 		r.Project = subsystemName
@@ -179,7 +179,7 @@ func (cass *CassandraClient) findAllDatapoints(org int64, projectName string, su
 		}
 		result = append(result, r)
 	}
-	log.DefaultLogger.Info(fmt.Sprintf("Found: %d subsystems", len(result)))
+	log.DefaultLogger.Info(fmt.Sprintf("Found: %d datapoints", len(result)))
 	return result
 }
 
@@ -202,9 +202,9 @@ const subsystemsQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? A
 
 const datapointsTablename = "datapoints"
 
-const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpresssion,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
+const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
 
-const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpresssion,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
+const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scalingfunction,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const timeseriesTablename = "timeseries"
 
