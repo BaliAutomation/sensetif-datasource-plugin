@@ -161,13 +161,14 @@ func (cass *CassandraClient) getDatapoint(org int64, projectName string, subsyst
 }
 
 func (cass *CassandraClient) findAllDatapoints(org int64, projectName string, subsystemName string) []DatapointSettings {
-	log.DefaultLogger.Info("findAllSubsystems:  " + strconv.FormatInt(org, 10) + "/" + projectName)
+	log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
 	var result []DatapointSettings
 	scanner := cass.session.
 		Query(fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName).
 		Iter().
 		Scanner()
 	for scanner.Next() {
+		log.DefaultLogger.Info("Datapoint!")
 		var r DatapointSettings
 		r.Project = projectName
 		r.Project = subsystemName
