@@ -191,13 +191,6 @@ func (p ProjectHandler) updateDatapoint(orgId int64, body []byte) {
 
 func (p ProjectHandler) getProject(orgId int64, projectName string, sender backend.CallResourceResponseSender) error {
 	project := p.cassandraClient.getProject(orgId, projectName)
-	if project == nil {
-		project = &ProjectSettings{}
-		project.Name = "sbc1_malmo"
-		project.Title = "Brf Benzelius"
-		project.City = "Lund"
-		project.Geolocation = "@55.884878,13.156352,13z"
-	}
 	bytes, err := JSON.Marshal(project)
 	if err != nil {
 		err = sender.Send(&backend.CallResourceResponse{
@@ -229,7 +222,7 @@ func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResp
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson == nil {
+	if rawJson == nil || len(rawJson) == 0 {
 		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
@@ -249,13 +242,6 @@ func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResp
 
 func (p ProjectHandler) getSubsystem(orgId int64, project string, subsystemName string, sender backend.CallResourceResponseSender) error {
 	subsystem := p.cassandraClient.getSubsystem(orgId, project, subsystemName)
-	if subsystem == nil {
-		subsystem = &SubsystemSettings{}
-		subsystem.Project = project
-		subsystem.Name = subsystemName
-		subsystem.Title = "District Heating intake"
-		subsystem.Locallocation = "BV-23"
-	}
 	bytes, err := JSON.Marshal(subsystem)
 	if err != nil {
 		err = sender.Send(&backend.CallResourceResponse{
@@ -287,7 +273,8 @@ func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backen
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson == nil {
+	log.DefaultLogger.Info("rawJson:\n" + string(rawJson[:]))
+	if rawJson == nil || len(rawJson) == 0 {
 		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
@@ -305,22 +292,6 @@ func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backen
 
 func (p ProjectHandler) getDatapoint(orgId int64, project string, subsystem string, datapointName string, sender backend.CallResourceResponseSender) error {
 	datapoint := p.cassandraClient.getDatapoint(orgId, project, subsystem, datapointName)
-	if datapoint == nil {
-		datapoint = &DatapointSettings{}
-		datapoint.Project = project
-		datapoint.Subsystem = subsystem
-		datapoint.Name = datapointName
-		datapoint.Interval = Thirty_minutes
-		datapoint.URL = "https://api.darksky.net/forecast/615bfb2b3db89dea530f3fb6e0c9c38c/55.8794518,13.1609417"
-		datapoint.AuthenticationType = none
-		datapoint.Format = json
-		datapoint.ValueExpression = "$.currently.temperature"
-		datapoint.Unit = "ºC"
-		datapoint.Scaling = fToC
-		datapoint.TimeToLive = d
-		datapoint.TimestampType = epochSeconds
-		datapoint.TimestampExpression = "$.currently.time"
-	}
 	bytes, err := JSON.Marshal(datapoint)
 	if err != nil {
 		err = sender.Send(&backend.CallResourceResponse{
@@ -351,7 +322,7 @@ func (p ProjectHandler) getDatapoints(orgId int64, project string, subsystem str
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson == nil {
+	if rawJson == nil || len(rawJson) == 0 {
 		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
