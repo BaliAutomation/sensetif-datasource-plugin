@@ -222,7 +222,7 @@ func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResp
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson == nil || len(rawJson) == 0 {
+	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
 		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
@@ -274,7 +274,7 @@ func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backen
 		return err2
 	}
 	log.DefaultLogger.Info("rawJson:\n" + string(rawJson[:]))
-	if rawJson == nil || len(rawJson) == 0 {
+	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
 		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
@@ -322,7 +322,7 @@ func (p ProjectHandler) getDatapoints(orgId int64, project string, subsystem str
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson == nil || len(rawJson) == 0 {
+	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
 		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
