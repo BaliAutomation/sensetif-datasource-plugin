@@ -224,6 +224,7 @@ func (p ProjectHandler) getProject(orgId int64, projectName string, sender backe
 func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResponseSender) error {
 
 	projects := p.cassandraClient.findAllProjects(orgId)
+	log.DefaultLogger.Info(fmt.Sprintf("Projects returned from Cassandra: %+v", projects))
 	rawJson, err2 := JSON.Marshal(projects)
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
