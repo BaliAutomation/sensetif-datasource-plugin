@@ -224,11 +224,13 @@ func (p ProjectHandler) getProject(orgId int64, projectName string, sender backe
 func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResponseSender) error {
 
 	projects := p.cassandraClient.findAllProjects(orgId)
-	log.DefaultLogger.Info(fmt.Sprintf("Projects returned from Cassandra: %+v", projects))
 	rawJson, err2 := JSON.Marshal(projects)
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
+	}
+	if rawJson == nil {
+		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
@@ -284,6 +286,9 @@ func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backen
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
+	}
+	if rawJson == nil {
+		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
@@ -345,6 +350,9 @@ func (p ProjectHandler) getDatapoints(orgId int64, project string, subsystem str
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
+	}
+	if rawJson == nil {
+		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
