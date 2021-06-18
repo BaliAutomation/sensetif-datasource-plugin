@@ -85,7 +85,7 @@ func (cass *CassandraClient) getProject(orgId int64, name string) *ProjectSettin
 
 func (cass *CassandraClient) findAllProjects(org int64) []ProjectSettings {
 	log.DefaultLogger.Info("findAllProjects:  " + strconv.FormatInt(org, 10))
-	var result []ProjectSettings
+	result := make([]ProjectSettings, 0)
 	scanner := cass.session.
 		Query(fmt.Sprintf(projectsQuery, cass.clusterConfig.Keyspace, projectsTablename), org).
 		Iter().
@@ -122,7 +122,7 @@ func (cass *CassandraClient) getSubsystem(org int64, projectName string, subsyst
 
 func (cass *CassandraClient) findAllSubsystems(org int64, projectName string) []SubsystemSettings {
 	log.DefaultLogger.Info("findAllSubsystems:  " + strconv.FormatInt(org, 10) + "/" + projectName)
-	var result []SubsystemSettings
+	result := make([]SubsystemSettings, 0)
 	scanner := cass.session.
 		Query(fmt.Sprintf(subsystemsQuery, cass.clusterConfig.Keyspace, subsystemsTablename), org, projectName).
 		Iter().
@@ -162,7 +162,7 @@ func (cass *CassandraClient) getDatapoint(org int64, projectName string, subsyst
 
 func (cass *CassandraClient) findAllDatapoints(org int64, projectName string, subsystemName string) []DatapointSettings {
 	log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
-	var result []DatapointSettings
+	result := make([]DatapointSettings, 0)
 	query := fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename)
 	scanner := cass.session.
 		Query(query, org, projectName, subsystemName).

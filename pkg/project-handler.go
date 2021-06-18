@@ -222,9 +222,6 @@ func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResp
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
-		rawJson = []byte{'[', ']'}
-	}
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
@@ -236,7 +233,7 @@ func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResp
 		return err
 	}
 
-	log.DefaultLogger.Info("Projects sent to client.\n" + string(rawJson[:]))
+	log.DefaultLogger.Info("Projects sent to client:" + string(rawJson[:]))
 	return nil
 }
 
@@ -274,9 +271,6 @@ func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backen
 		return err2
 	}
 	log.DefaultLogger.Info("rawJson:\n" + string(rawJson[:]))
-	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
-		rawJson = []byte{'[', ']'}
-	}
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
@@ -321,9 +315,6 @@ func (p ProjectHandler) getDatapoints(orgId int64, project string, subsystem str
 	if err2 != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
-	}
-	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
-		rawJson = []byte{'[', ']'}
 	}
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
