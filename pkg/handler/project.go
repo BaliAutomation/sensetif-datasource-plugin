@@ -45,7 +45,7 @@ func GetProject(cmd *model.Command, cassandra client.Cassandra) (*backend.CallRe
 	}, nil
 }
 
-func UpdateProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
+func UpdateProject(cmd *model.Command, cassandra client.Cassandra, kafka client.Kafka) (*backend.CallResourceResponse, error) {
 	var project model.ProjectSettings
 	if err := json.Unmarshal(cmd.Payload, &project); err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal project; err: %v", err))
@@ -53,6 +53,10 @@ func UpdateProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourc
 	}
 
 	kafka.Send(model.ConfigurationTopic, "updateProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+
+	if err := cassandra.AddProject(cmd.OrgID, &project); err != nil {
+		return nil, err
+	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil

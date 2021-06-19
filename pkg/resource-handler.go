@@ -43,6 +43,10 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 	log.DefaultLogger.Info(fmt.Sprintf("request: [%s] [%s]", cmd.Action, cmd.Resource))
 	cmd.OrgID = orgId
 
+	if request.URL != "exec" {
+		return p.notFound("", sender)
+	}
+
 	response, err := p.handle(&cmd, request)
 	if err == nil {
 		if sendErr := sender.Send(response); sendErr != nil {
@@ -76,7 +80,7 @@ func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourc
 	}
 
 	if cmd.Resource == "project" && cmd.Action == "update" {
-		return handler.UpdateProject(cmd, p.kafka)
+		return handler.UpdateProject(cmd, p.cassandra, p.kafka)
 	}
 
 	if cmd.Resource == "subsystem" && cmd.Action == "list" {
