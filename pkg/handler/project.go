@@ -1,0 +1,59 @@
+package handler
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+
+	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
+	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+)
+
+func ListProjects(cmd *model.Command, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+	projects := cassandra.FindAllProjects(cmd.OrgID)
+	rawJson, err := json.Marshal(projects)
+	if err != nil {
+		log.DefaultLogger.Error("Unable to marshal json")
+		return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+	}
+
+	return &backend.CallResourceResponse{
+		Status:  http.StatusOK,
+		Headers: make(map[string][]string),
+		Body:    rawJson,
+	}, nil
+}
+
+func GetProject(cmd *model.Command, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+	values, missingParams := getParams(cmd.Params, "project")
+	if len(missingParams) > 0 {
+		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, missingParams)
+	}
+
+	project := cassandra.GetProject(cmd.OrgID, values[0])
+	bytes, err := json.Marshal(project)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+	}
+
+	return &backend.CallResourceResponse{
+		Status: http.StatusOK,
+		Body:   bytes,
+	}, nil
+}
+
+func UpdateProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
+	var project model.ProjectSettings
+	if err := json.Unmarshal(cmd.Payload, &project); err != nil {
+		log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal project; err: %v", err))
+		return nil, fmt.Errorf("%w: invalid project json", model.ErrBadRequest)
+	}
+
+	kafka.Send(model.ConfigurationTopic, "updateProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+	return &backend.CallResourceResponse{
+		Status: http.StatusAccepted,
+	}, nil
+}

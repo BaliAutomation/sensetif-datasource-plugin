@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -6,9 +6,24 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/gocql/gocql"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
+
+type Cassandra interface {
+	QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time) []model.TsPair
+	GetProject(orgId int64, name string) *model.ProjectSettings
+	FindAllProjects(org int64) []model.ProjectSettings
+	GetSubsystem(org int64, projectName string, subsystem string) *model.SubsystemSettings
+	FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings
+	GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) *model.DatapointSettings
+	FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings
+
+	Shutdown()
+	Reinitialize()
+	Err() error
+}
 
 type CassandraClient struct {
 	clusterConfig *gocql.ClusterConfig
@@ -17,7 +32,7 @@ type CassandraClient struct {
 	ctx           context.Context
 }
 
-func (cass *CassandraClient) initializeCassandra(hosts []string) {
+func (cass *CassandraClient) InitializeCassandra(hosts []string) {
 	log.DefaultLogger.Info("Initialize Cassandra client: " + hosts[0])
 	cass.clusterConfig = gocql.NewCluster()
 	cass.clusterConfig.Hosts = hosts
@@ -27,10 +42,10 @@ func (cass *CassandraClient) initializeCassandra(hosts []string) {
 		return true
 	})
 	cass.clusterConfig.Keyspace = "ks_sensetif"
-	cass.reinitialize()
+	cass.Reinitialize()
 }
 
-func (cass *CassandraClient) reinitialize() {
+func (cass *CassandraClient) Reinitialize() {
 	log.DefaultLogger.Info("Re-initialize Cassandra session: " + fmt.Sprintf("%+v", cass.session))
 	if cass.session != nil {
 		cass.session.Close()
@@ -43,19 +58,19 @@ func (cass *CassandraClient) reinitialize() {
 	log.DefaultLogger.Info("Cassandra session: " + fmt.Sprintf("%+v", cass.session))
 }
 
-func (cass *CassandraClient) queryTimeseries(org int64, sensor SensorRef, from time.Time, to time.Time) []TsPair {
-	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.project + "/" + sensor.subsystem + "/" + sensor.datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
-	var result []TsPair
+func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time) []model.TsPair {
+	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
+	var result []model.TsPair
 	startYearMonth := from.Year()*12 + int(from.Month())
 	endYearMonth := to.Year()*12 + int(to.Month())
 	for yearmonth := startYearMonth; yearmonth <= endYearMonth; yearmonth++ {
 		scanner := cass.session.
-			Query(fmt.Sprintf(tsQuery, cass.clusterConfig.Keyspace, timeseriesTablename), org, sensor.project, sensor.subsystem, yearmonth, sensor.datapoint, from, to).
+			Query(fmt.Sprintf(tsQuery, cass.clusterConfig.Keyspace, timeseriesTablename), org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to).
 			Iter().
 			Scanner()
 		for scanner.Next() {
-			var rowValue TsPair
-			err := scanner.Scan(&rowValue.value, &rowValue.ts)
+			var rowValue model.TsPair
+			err := scanner.Scan(&rowValue.Value, &rowValue.TS)
 			if err != nil {
 				log.DefaultLogger.Error("Internal Error? Failed to read record", err)
 			}
@@ -66,14 +81,14 @@ func (cass *CassandraClient) queryTimeseries(org int64, sensor SensorRef, from t
 	return result
 }
 
-func (cass *CassandraClient) getProject(orgId int64, name string) *ProjectSettings {
+func (cass *CassandraClient) GetProject(orgId int64, name string) *model.ProjectSettings {
 	log.DefaultLogger.Info("getProject:  " + strconv.FormatInt(orgId, 10) + "/" + name)
 	scanner := cass.session.
 		Query(fmt.Sprintf(projectQuery, cass.clusterConfig.Keyspace, projectsTablename), orgId, name).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var rowValue ProjectSettings
+		var rowValue model.ProjectSettings
 		err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.City, &rowValue.Country, &rowValue.Timezone, &rowValue.Geolocation)
 		if err != nil {
 			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
@@ -83,16 +98,16 @@ func (cass *CassandraClient) getProject(orgId int64, name string) *ProjectSettin
 	return nil
 }
 
-func (cass *CassandraClient) findAllProjects(org int64) []ProjectSettings {
+func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
 	log.DefaultLogger.Info("findAllProjects:  " + strconv.FormatInt(org, 10))
 
-	result := []ProjectSettings{}
+	result := []model.ProjectSettings{}
 	scanner := cass.session.
 		Query(fmt.Sprintf(projectsQuery, cass.clusterConfig.Keyspace, projectsTablename), org).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var rowValue ProjectSettings
+		var rowValue model.ProjectSettings
 		err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.City, &rowValue.Country, &rowValue.Timezone, &rowValue.Geolocation)
 		if err != nil {
 			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
@@ -103,14 +118,14 @@ func (cass *CassandraClient) findAllProjects(org int64) []ProjectSettings {
 	return result
 }
 
-func (cass *CassandraClient) getSubsystem(org int64, projectName string, subsystem string) *SubsystemSettings {
+func (cass *CassandraClient) GetSubsystem(org int64, projectName string, subsystem string) *model.SubsystemSettings {
 	log.DefaultLogger.Info("getSubsystem:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystem)
 	scanner := cass.session.
 		Query(fmt.Sprintf(subsystemQuery, cass.clusterConfig.Keyspace, subsystemsTablename), org, projectName, subsystem).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var rowValue SubsystemSettings
+		var rowValue model.SubsystemSettings
 		rowValue.Project = projectName
 		err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.Locallocation)
 		if err != nil {
@@ -121,16 +136,16 @@ func (cass *CassandraClient) getSubsystem(org int64, projectName string, subsyst
 	return nil
 }
 
-func (cass *CassandraClient) findAllSubsystems(org int64, projectName string) []SubsystemSettings {
+func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings {
 	log.DefaultLogger.Info("findAllSubsystems:  " + strconv.FormatInt(org, 10) + "/" + projectName)
 
-	result := []SubsystemSettings{}
+	result := []model.SubsystemSettings{}
 	scanner := cass.session.
 		Query(fmt.Sprintf(subsystemsQuery, cass.clusterConfig.Keyspace, subsystemsTablename), org, projectName).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var rowValue SubsystemSettings
+		var rowValue model.SubsystemSettings
 		rowValue.Project = projectName
 		err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.Locallocation)
 		if err != nil {
@@ -142,14 +157,14 @@ func (cass *CassandraClient) findAllSubsystems(org int64, projectName string) []
 	return result
 }
 
-func (cass *CassandraClient) getDatapoint(org int64, projectName string, subsystemName string, datapoint string) *DatapointSettings {
+func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) *model.DatapointSettings {
 	log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
 	scanner := cass.session.
 		Query(fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName, datapoint).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var r DatapointSettings
+		var r model.DatapointSettings
 		r.Project = projectName
 		r.Project = subsystemName
 		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Credentials,
@@ -162,17 +177,17 @@ func (cass *CassandraClient) getDatapoint(org int64, projectName string, subsyst
 	return nil
 }
 
-func (cass *CassandraClient) findAllDatapoints(org int64, projectName string, subsystemName string) []DatapointSettings {
+func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings {
 	log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
 
-	result := []DatapointSettings{}
+	result := []model.DatapointSettings{}
 	query := fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename)
 	scanner := cass.session.
 		Query(query, org, projectName, subsystemName).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var r DatapointSettings
+		var r model.DatapointSettings
 		r.Project = projectName
 		r.Project = subsystemName
 		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Credentials,
@@ -186,9 +201,13 @@ func (cass *CassandraClient) findAllDatapoints(org int64, projectName string, su
 	return result
 }
 
-func (cass *CassandraClient) shutdown() {
+func (cass *CassandraClient) Shutdown() {
 	log.DefaultLogger.Info("Shutdown Cassandra client")
 	cass.session.Close()
+}
+
+func (cass *CassandraClient) Err() error {
+	return cass.err
 }
 
 const projectsTablename = "projects"
