@@ -4,12 +4,13 @@ import (
 	"context"
 	JSON "encoding/json"
 	"fmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]+`
@@ -222,9 +223,7 @@ func (p ProjectHandler) getProjects(orgId int64, sender backend.CallResourceResp
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
-		rawJson = []byte{'[', ']'}
-	}
+
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
@@ -273,10 +272,7 @@ func (p ProjectHandler) getSubsystems(orgId int64, project string, sender backen
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	log.DefaultLogger.Info("rawJson:\n" + string(rawJson[:]))
-	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
-		rawJson = []byte{'[', ']'}
-	}
+
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
@@ -322,9 +318,7 @@ func (p ProjectHandler) getDatapoints(orgId int64, project string, subsystem str
 		log.DefaultLogger.Error("Unable to marshal json")
 		return err2
 	}
-	if rawJson[0] == 'n' { // Only "null" can have been returned if the first character is 'n'
-		rawJson = []byte{'[', ']'}
-	}
+
 	err := sender.Send(&backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
