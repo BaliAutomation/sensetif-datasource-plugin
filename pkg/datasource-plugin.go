@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
+	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
@@ -22,7 +24,7 @@ func (sds *SensetifDatasource) initializeInstance() {
 type SensetifDatasource struct {
 	im              instancemgmt.InstanceManager
 	hosts           []string
-	cassandraClient *CassandraClient
+	cassandraClient client.Cassandra
 }
 
 func (sds *SensetifDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
@@ -69,7 +71,7 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 	to := query.TimeRange.To
 
 	response := backend.DataResponse{}
-	var model SensorRef
+	var model model.SensorRef
 	response.Error = JSON.Unmarshal(query.JSON, &model)
 	if response.Error != nil {
 		return response
@@ -77,13 +79,13 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 
 	log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
 	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model))
-	timeseries := sds.cassandraClient.queryTimeseries(orgId, model, from, to)
+	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model, from, to)
 
 	times := []time.Time{}
 	values := []float64{}
 	for _, t := range timeseries {
-		times = append(times, t.ts)
-		values = append(values, t.value)
+		times = append(times, t.TS)
+		values = append(values, t.Value)
 	}
 
 	frame := data.NewFrame("response")
@@ -105,7 +107,7 @@ func (sds *SensetifDatasource) CheckHealth(ctx context.Context, req *backend.Che
 }
 
 type instanceSettings struct {
-	cassandraClient *CassandraClient
+	cassandraClient client.Cassandra
 }
 
 func (sds *SensetifDatasource) newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
@@ -113,10 +115,10 @@ func (sds *SensetifDatasource) newDataSourceInstance(setting backend.DataSourceI
 	settings := &instanceSettings{
 		cassandraClient: sds.cassandraClient,
 	}
-	settings.cassandraClient.reinitialize()
-	return settings, settings.cassandraClient.err
+	settings.cassandraClient.Reinitialize()
+	return settings, settings.cassandraClient.Err()
 }
 
 func (s *instanceSettings) Dispose() {
-	s.cassandraClient.shutdown()
+	s.cassandraClient.Shutdown()
 }
