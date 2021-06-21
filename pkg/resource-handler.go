@@ -37,14 +37,14 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 
 	var cmd model.Command
 	if err := json.Unmarshal(request.Body, &cmd); err != nil {
-		return p.badRequest("invalid format of the command", sender)
+		return badRequest("invalid format of the command", sender)
 	}
 
 	log.DefaultLogger.Info(fmt.Sprintf("request: [%s] [%s]", cmd.Action, cmd.Resource))
 	cmd.OrgID = orgId
 
 	if request.URL != "exec" {
-		return p.notFound("", sender)
+		return notFound("", sender)
 	}
 
 	response, err := p.handle(&cmd, request)
@@ -58,16 +58,16 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 	}
 
 	if errors.Is(err, model.ErrNotFound) {
-		return p.notFound(err.Error(), sender)
+		return notFound(err.Error(), sender)
 	}
 	if errors.Is(err, model.ErrBadRequest) {
-		return p.badRequest(err.Error(), sender)
+		return badRequest(err.Error(), sender)
 	}
 	if errors.Is(err, model.ErrUnprocessableEntity) {
-		return p.unprocessable(err.Error(), sender)
+		return unprocessable(err.Error(), sender)
 	}
 
-	return p.serverError(err.Error(), sender)
+	return serverError(err.Error(), sender)
 }
 
 func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourceRequest) (*backend.CallResourceResponse, error) {
@@ -103,35 +103,35 @@ func getOrgId(request *backend.CallResourceRequest, sender backend.CallResourceR
 	return strconv.ParseInt(orgIdHeader, 10, 64)
 }
 
-func (p ResourceHandler) notFound(message string, sender backend.CallResourceResponseSender) error {
+func notFound(message string, sender backend.CallResourceResponseSender) error {
 	return sender.Send(&backend.CallResourceResponse{
 		Status: http.StatusNotFound,
-		Body:   p.createMessageJSON(message),
+		Body:   createMessageJSON(message),
 	})
 }
 
-func (p ResourceHandler) badRequest(message string, sender backend.CallResourceResponseSender) error {
+func badRequest(message string, sender backend.CallResourceResponseSender) error {
 	return sender.Send(&backend.CallResourceResponse{
 		Status: http.StatusBadRequest,
-		Body:   p.createMessageJSON(message),
+		Body:   createMessageJSON(message),
 	})
 }
 
-func (p ResourceHandler) unprocessable(message string, sender backend.CallResourceResponseSender) error {
+func unprocessable(message string, sender backend.CallResourceResponseSender) error {
 	return sender.Send(&backend.CallResourceResponse{
 		Status: http.StatusUnprocessableEntity,
 		Body:   []byte("Unable to marshal the entity. Probably wrong format: " + message),
 	})
 }
 
-func (p ResourceHandler) serverError(message string, sender backend.CallResourceResponseSender) error {
+func serverError(message string, sender backend.CallResourceResponseSender) error {
 	return sender.Send(&backend.CallResourceResponse{
 		Status: http.StatusInternalServerError,
 		Body:   []byte(message),
 	})
 }
 
-func (p ResourceHandler) createMessageJSON(message string) []byte {
+func createMessageJSON(message string) []byte {
 	response, _ := json.Marshal(struct {
 		Message string `json:"message"`
 	}{

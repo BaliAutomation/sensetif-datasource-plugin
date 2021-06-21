@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
 	"net/http"
 	"strconv"
 
@@ -49,6 +50,9 @@ func GetDatapoint(cmd *model.Command, cassandra client.Cassandra) (*backend.Call
 
 func UpdateDatapoint(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
 	kafka.Send(model.ConfigurationTopic, "updateDatapoint:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+	if util.IsDevelopmentMode() {
+		// TODO: direct update to cassandra
+	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil

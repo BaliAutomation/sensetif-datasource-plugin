@@ -14,7 +14,7 @@ import (
 type Cassandra interface {
 	QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time) []model.TsPair
 	GetProject(orgId int64, name string) *model.ProjectSettings
-	AddProject(orgId int64, project *model.ProjectSettings) error
+	UpsertProject(orgId int64, project *model.ProjectSettings) error
 	FindAllProjects(org int64) []model.ProjectSettings
 	GetSubsystem(org int64, projectName string, subsystem string) *model.SubsystemSettings
 	FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings
@@ -99,7 +99,7 @@ func (cass *CassandraClient) GetProject(orgId int64, name string) *model.Project
 	return nil
 }
 
-func (cass *CassandraClient) AddProject(orgId int64, project *model.ProjectSettings) error {
+func (cass *CassandraClient) UpsertProject(orgId int64, project *model.ProjectSettings) error {
 	log.DefaultLogger.Info("addProject:  " + strconv.FormatInt(orgId, 10) + "/" + project.Name)
 	return cass.session.Query(projectsInsert, orgId, project.Name, project.Title, project.City, project.Country, project.Timezone, project.Geolocation).Exec()
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
+	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
@@ -51,11 +52,12 @@ func UpdateProject(cmd *model.Command, cassandra client.Cassandra, kafka client.
 		log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal project; err: %v", err))
 		return nil, fmt.Errorf("%w: invalid project json", model.ErrBadRequest)
 	}
-
 	kafka.Send(model.ConfigurationTopic, "updateProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
 
-	if err := cassandra.AddProject(cmd.OrgID, &project); err != nil {
-		return nil, err
+	if util.IsDevelopmentMode() {
+		if err := cassandra.UpsertProject(cmd.OrgID, &project); err != nil {
+			return nil, err
+		}
 	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
