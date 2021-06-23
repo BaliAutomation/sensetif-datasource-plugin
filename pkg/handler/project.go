@@ -47,18 +47,25 @@ func GetProject(cmd *model.Command, cassandra client.Cassandra) (*backend.CallRe
 }
 
 func UpdateProject(cmd *model.Command, cassandra client.Cassandra, kafka client.Kafka) (*backend.CallResourceResponse, error) {
-	var project model.ProjectSettings
-	if err := json.Unmarshal(cmd.Payload, &project); err != nil {
-		log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal project; err: %v", err))
-		return nil, fmt.Errorf("%w: invalid project json", model.ErrBadRequest)
-	}
 	kafka.Send(model.ConfigurationTopic, "updateProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
 
 	if util.IsDevelopmentMode() {
+		var project model.ProjectSettings
+		if err := json.Unmarshal(cmd.Payload, &project); err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal project; err: %v", err))
+			return nil, fmt.Errorf("%w: invalid project json", model.ErrBadRequest)
+		}
 		if err := cassandra.UpsertProject(cmd.OrgID, &project); err != nil {
 			return nil, err
 		}
 	}
+	return &backend.CallResourceResponse{
+		Status: http.StatusAccepted,
+	}, nil
+}
+
+func DeleteProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
+	kafka.Send(model.ConfigurationTopic, "updateProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
