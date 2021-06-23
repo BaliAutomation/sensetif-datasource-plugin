@@ -14,7 +14,7 @@ if [ "$CHANGES!" != "!" ] ; then
 fi
 
 VERSIONS=`git tag | grep "^[0-9]"`
-VERSION=`echo "$VERSIONS" | perl -Mversion -lane 'print join " ", sort { version->parse($a) cmp version->parse($b) } @F'  2>/dev/null | tail -1`
+VERSION=`echo "$VERSIONS" | sort -V | tail -1`
 
 echo $VERSION
 
