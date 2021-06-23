@@ -70,3 +70,10 @@ func DeleteProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourc
 		Status: http.StatusAccepted,
 	}, nil
 }
+
+func RenameProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
+	kafka.Send(model.ConfigurationTopic, "renameProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+	return &backend.CallResourceResponse{
+		Status: http.StatusAccepted,
+	}, nil
+}

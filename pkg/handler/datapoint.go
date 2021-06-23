@@ -64,3 +64,10 @@ func DeleteDatapoint(cmd *model.Command, kafka client.Kafka) (*backend.CallResou
 		Status: http.StatusAccepted,
 	}, nil
 }
+
+func RenameDatapoint(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
+	kafka.Send(model.ConfigurationTopic, "renameDatapoint:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+	return &backend.CallResourceResponse{
+		Status: http.StatusAccepted,
+	}, nil
+}

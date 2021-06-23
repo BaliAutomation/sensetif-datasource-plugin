@@ -87,6 +87,10 @@ func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourc
 		return handler.DeleteProject(cmd, p.kafka)
 	}
 
+	if cmd.Resource == "project" && cmd.Action == "rename" {
+		return handler.RenameProject(cmd, p.kafka)
+	}
+
 	if cmd.Resource == "subsystem" && cmd.Action == "list" {
 		return handler.ListSubsystems(cmd, p.cassandra)
 	}
@@ -99,6 +103,10 @@ func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourc
 		return handler.DeleteSubsystem(cmd, p.kafka)
 	}
 
+	if cmd.Resource == "subsystem" && cmd.Action == "rename" {
+		return handler.RenameSubsystem(cmd, p.kafka)
+	}
+
 	if cmd.Resource == "datapoint" && cmd.Action == "list" {
 		return handler.ListDatapoints(cmd, p.cassandra)
 	}
@@ -109,6 +117,10 @@ func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourc
 
 	if cmd.Resource == "datapoint" && cmd.Action == "delete" {
 		return handler.DeleteDatapoint(cmd, p.kafka)
+	}
+
+	if cmd.Resource == "datapoint" && cmd.Action == "rename" {
+		return handler.RenameDatapoint(cmd, p.kafka)
 	}
 
 	return nil, model.ErrNotFound
