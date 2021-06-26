@@ -196,7 +196,7 @@ func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, su
 		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Credentials,
 			&r.ValueExpression, &r.Unit, &r.TimestampExpression, &r.TimestampType, &r.TimeToLive, &r.Scaling, &r.K, &r.M)
 		if err != nil {
-			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+			log.DefaultLogger.Error("Internal Error? Failed to read record: " + err.Error())
 		}
 		result = append(result, r)
 	}
