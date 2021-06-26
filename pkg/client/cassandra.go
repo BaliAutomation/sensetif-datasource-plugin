@@ -14,7 +14,11 @@ import (
 type Cassandra interface {
 	QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time) []model.TsPair
 	GetProject(orgId int64, name string) *model.ProjectSettings
+
 	UpsertProject(orgId int64, project *model.ProjectSettings) error
+	UpsertSubsystem(orgId int64, project *model.SubsystemSettings) error
+	UpsertDatapoint(orgId int64, datapoint *model.DatapointSettings) error
+
 	FindAllProjects(org int64) []model.ProjectSettings
 	GetSubsystem(org int64, projectName string, subsystem string) *model.SubsystemSettings
 	FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings
@@ -102,6 +106,17 @@ func (cass *CassandraClient) GetProject(orgId int64, name string) *model.Project
 func (cass *CassandraClient) UpsertProject(orgId int64, project *model.ProjectSettings) error {
 	log.DefaultLogger.Info("addProject:  " + strconv.FormatInt(orgId, 10) + "/" + project.Name)
 	return cass.session.Query(projectsInsert, orgId, project.Name, project.Title, project.City, project.Country, project.Timezone, project.Geolocation).Exec()
+}
+
+func (cass *CassandraClient) UpsertSubsystem(orgId int64, subsystem *model.SubsystemSettings) error {
+	log.DefaultLogger.Info("addSubsystem:  " + strconv.FormatInt(orgId, 10) + "/" + subsystem.Name)
+	return cass.session.Query(subsystemInsert, orgId, subsystem.Name, subsystem.Title, subsystem.Locallocation, time.Now(), subsystem.Project).Exec()
+}
+
+// fixme: currently only name & url are saved for local development
+func (cass *CassandraClient) UpsertDatapoint(orgId int64, datapoint *model.DatapointSettings) error {
+	log.DefaultLogger.Info("addDatapoint:  " + strconv.FormatInt(orgId, 10) + "/" + datapoint.Name)
+	return cass.session.Query(datapointInsert, orgId, datapoint.Name, datapoint.URL, time.Now(), datapoint.Project, datapoint.Subsystem).Exec()
 }
 
 func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
@@ -216,6 +231,8 @@ func (cass *CassandraClient) Err() error {
 const projectsTablename = "projects"
 
 const projectsInsert = "INSERT into projects (orgid,name,title,city,country,timezone,geolocation) values (?, ?, ?, ?, ?, ?, ?);"
+const subsystemInsert = "INSERT into subsystems (orgid,name,title,location,ts,project) values (?, ?, ?, ?, ?, ?);"
+const datapointInsert = "INSERT into datapoints (orgid,name,url,ts,project,subsystem) values (?, ?, ?, ?, ?, ?);"
 
 const projectQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ? AND name = ?;"
 

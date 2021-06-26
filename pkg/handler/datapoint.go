@@ -3,13 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
 	"net/http"
 	"strconv"
+
+	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
 func ListDatapoints(cmd *model.Command, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
@@ -48,10 +50,17 @@ func GetDatapoint(cmd *model.Command, cassandra client.Cassandra) (*backend.Call
 	}, nil
 }
 
-func UpdateDatapoint(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
+func UpdateDatapoint(cmd *model.Command, cassandra client.Cassandra, kafka client.Kafka) (*backend.CallResourceResponse, error) {
 	kafka.Send(model.ConfigurationTopic, "updateDatapoint:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
 	if util.IsDevelopmentMode() {
-		// TODO: direct update to cassandra
+		var datapoint model.DatapointSettings
+		if err := json.Unmarshal(cmd.Payload, &datapoint); err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal datapoint; err: %v", err))
+			return nil, fmt.Errorf("%w: invalid datapoint json", model.ErrBadRequest)
+		}
+		if err := cassandra.UpsertDatapoint(cmd.OrgID, &datapoint); err != nil {
+			return nil, err
+		}
 	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,

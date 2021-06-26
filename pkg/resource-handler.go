@@ -96,7 +96,7 @@ func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourc
 	}
 
 	if cmd.Resource == "subsystem" && cmd.Action == "update" {
-		return handler.UpdateSubsystem(cmd, p.kafka)
+		return handler.UpdateSubsystem(cmd, p.cassandra, p.kafka)
 	}
 
 	if cmd.Resource == "subsystem" && cmd.Action == "delete" {
@@ -112,7 +112,7 @@ func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourc
 	}
 
 	if cmd.Resource == "datapoint" && cmd.Action == "update" {
-		return handler.UpdateDatapoint(cmd, p.kafka)
+		return handler.UpdateDatapoint(cmd, p.cassandra, p.kafka)
 	}
 
 	if cmd.Resource == "datapoint" && cmd.Action == "delete" {
