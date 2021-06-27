@@ -3,9 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
 	"net/http"
 	"strconv"
+
+	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
@@ -51,10 +52,17 @@ func GetSubsystem(cmd *model.Command, cassandra client.Cassandra) (*backend.Call
 
 }
 
-func UpdateSubsystem(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
+func UpdateSubsystem(cmd *model.Command, cassandra client.Cassandra, kafka client.Kafka) (*backend.CallResourceResponse, error) {
 	kafka.Send(model.ConfigurationTopic, "updateSubsystem:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
 	if util.IsDevelopmentMode() {
-		// TODO: direct update to cassandra
+		var subsystem model.SubsystemSettings
+		if err := json.Unmarshal(cmd.Payload, &subsystem); err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal subsystem; err: %v", err))
+			return nil, fmt.Errorf("%w: invalid subsystem json", model.ErrBadRequest)
+		}
+		if err := cassandra.UpsertSubsystem(cmd.OrgID, &subsystem); err != nil {
+			return nil, err
+		}
 	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
