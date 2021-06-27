@@ -16,9 +16,9 @@ type DatapointSettings struct {
 	Unit            string               `json:"unit"`            // Allow all characters
 
 	// Ideally only show k and m for ScalingFunctions that uses them, and show the formula with the scaling function
-	Scaling ScalingFunction `json:"scaling"`
-	K       float64         `json:"k"`
-	M       float64         `json:"m"`
+	Scaling Scaling `json:"scaling"`
+	K       float64 `json:"k"`
+	M       float64 `json:"m"`
 
 	TimestampType       TimestampType `json:"timestampType"`
 	TimestampExpression string        `json:"timestampExpression"` // if format==xml, then xpath. if format==json, then jsonpath.
