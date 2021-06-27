@@ -113,10 +113,10 @@ func (cass *CassandraClient) UpsertSubsystem(orgId int64, subsystem *model.Subsy
 	return cass.session.Query(subsystemInsert, orgId, subsystem.Name, subsystem.Title, subsystem.Locallocation, time.Now(), subsystem.Project).Exec()
 }
 
-// fixme: currently only name & url are saved for local development
-func (cass *CassandraClient) UpsertDatapoint(orgId int64, datapoint *model.DatapointSettings) error {
-	log.DefaultLogger.Info("addDatapoint:  " + strconv.FormatInt(orgId, 10) + "/" + datapoint.Name)
-	return cass.session.Query(datapointInsert, orgId, datapoint.Name, datapoint.URL, time.Now(), datapoint.Project, datapoint.Subsystem).Exec()
+func (cass *CassandraClient) UpsertDatapoint(orgId int64, d *model.DatapointSettings) error {
+	log.DefaultLogger.Info("addDatapoint:  " + strconv.FormatInt(orgId, 10) + "/" + d.Name)
+	return cass.session.Query(datapointInsert, orgId, d.Project, d.Subsystem, d.Name, time.Now(), d.Interval, d.URL, d.Format,
+		d.AuthenticationType, d.Auth, d.ValueExpression, d.Unit, d.TimestampExpression, d.TimestampType, d.TimeToLive, d.Scaling, d.K, d.M).Exec()
 }
 
 func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
@@ -232,7 +232,9 @@ const projectsTablename = "projects"
 
 const projectsInsert = "INSERT into projects (orgid,name,title,city,country,timezone,geolocation) values (?, ?, ?, ?, ?, ?, ?);"
 const subsystemInsert = "INSERT into subsystems (orgid,name,title,location,ts,project) values (?, ?, ?, ?, ?, ?);"
-const datapointInsert = "INSERT into datapoints (orgid,name,url,ts,project,subsystem) values (?, ?, ?, ?, ?, ?);"
+
+const datapointInsert = "INSERT INTO datapoints (orgid,project,subsystem,name,ts,pollinterval,url,docformat,authtype,auth,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m)" +
+	"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
 
 const projectQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ? AND name = ?;"
 
