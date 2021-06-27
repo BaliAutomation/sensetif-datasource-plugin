@@ -179,14 +179,14 @@ func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []
 func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) *model.DatapointSettings {
 	log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
 	scanner := cass.session.
-		Query(fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName, datapoint).
+		Query(fmt.Sprintf(datapointQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName, datapoint).
 		Iter().
 		Scanner()
 	for scanner.Next() {
 		var r model.DatapointSettings
 		r.Project = projectName
 		r.Project = subsystemName
-		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Credentials,
+		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Auth,
 			&r.ValueExpression, &r.Unit, &r.TimestampExpression, &r.TimestampType, &r.TimeToLive, &r.Scaling, &r.K, &r.M)
 		if err != nil {
 			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
@@ -208,7 +208,7 @@ func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, su
 		var r model.DatapointSettings
 		r.Project = projectName
 		r.Project = subsystemName
-		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Credentials,
+		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Auth,
 			&r.ValueExpression, &r.Unit, &r.TimestampExpression, &r.TimestampType, &r.TimeToLive, &r.Scaling, &r.K, &r.M)
 		if err != nil {
 			log.DefaultLogger.Error("Internal Error? Failed to read record: " + err.Error())
@@ -246,9 +246,9 @@ const subsystemsQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? A
 
 const datapointsTablename = "datapoints"
 
-const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
+const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,auth,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
 
-const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,credentials,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
+const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,auth,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const timeseriesTablename = "timeseries"
 

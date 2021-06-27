@@ -9,7 +9,7 @@ type DatapointSettings struct {
 
 	// Authentication is going to need a lot in the future, but for now user/pass is fine
 	AuthenticationType AuthenticationType `json:"authenticationType"`
-	Credentials        string             `json:"credentials"` // if Authentication == basic, then this is BasicAuth
+	Auth               map[string]string  `json:"auth"` // if Authentication == basic, then map contains keys "u" and "p"
 
 	Format          OriginDocumentFormat `json:"format"`
 	ValueExpression string               `json:"valueExpression"` // if format==xml, then xpath. if format==json, then jsonpath. If there is library available for validation, do that. If not, put in a function and we figure that out later.
