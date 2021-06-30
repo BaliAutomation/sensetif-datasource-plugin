@@ -40,7 +40,7 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 		return badRequest("invalid format of the command", sender)
 	}
 
-	log.DefaultLogger.Info(fmt.Sprintf("request: [%s] [%s]", cmd.Action, cmd.Resource))
+	log.DefaultLogger.Info(fmt.Sprintf("request: [%s] [%s] --> '%s'", cmd.Action, cmd.Resource, string(request.Body)))
 	cmd.OrgID = orgId
 
 	if request.URL != "exec" {
