@@ -65,7 +65,7 @@ func UpdateProject(cmd *model.Command, cassandra client.Cassandra, kafka client.
 }
 
 func DeleteProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
-	log.DefaultLogger.Info(fmt.Sprintf("cmd: %+v", cmd))
+	log.DefaultLogger.Info(fmt.Sprintf("cmd: %+v", cmd.Payload))
 	kafka.Send(model.ConfigurationTopic, "deleteProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
