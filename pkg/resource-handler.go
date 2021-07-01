@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
+	. "regexp"
 	"strconv"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/handler"
-	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
@@ -18,6 +17,37 @@ import (
 type ResourceHandler struct {
 	cassandra client.Cassandra
 	kafka     client.Kafka
+}
+
+type Link struct {
+	Pattern *Regexp
+	Method  string
+	Fn      func(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error)
+}
+
+const regexName = `[a-zA-Z][a-zA-Z0-9-_]*`
+
+var links []Link = []Link{
+	// Projects API
+	{Method: "GET", Fn: handler.ListProjects, Pattern: MustCompile(`^_$`)},
+	{Method: "GET", Fn: handler.GetProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
+	{Method: "PUT", Fn: handler.UpdateProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
+	{Method: "DELETE", Fn: handler.DeleteProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
+	{Method: "POST", Fn: handler.RenameProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
+
+	// Subsystems API
+	{Method: "GET", Fn: handler.ListSubsystems, Pattern: MustCompile(`^(` + regexName + `)/_$`)},
+	{Method: "GET", Fn: handler.GetSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "PUT", Fn: handler.UpdateSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "DELETE", Fn: handler.DeleteSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "POST", Fn: handler.RenameSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
+
+	// Datapoint API
+	{Method: "GET", Fn: handler.ListDatapoints, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/_$`)},
+	{Method: "GET", Fn: handler.GetDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "PUT", Fn: handler.UpdateDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "DELETE", Fn: handler.DeleteDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "POST", Fn: handler.RenameDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 }
 
 func (p ResourceHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
@@ -32,98 +62,24 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 			return sendErr
 		}
 	}
-
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s, OrgId: %d", request.URL, request.Path, request.Method, orgId))
 
-	var cmd model.Command
-	if err := json.Unmarshal(request.Body, &cmd); err != nil {
-		return badRequest("invalid format of the command", sender)
-	}
-
-	log.DefaultLogger.Info(fmt.Sprintf("request: [%s] [%s] --> '%s'", cmd.Action, cmd.Resource, string(request.Body)))
-	cmd.OrgID = orgId
-
-	if request.URL != "exec" {
-		return notFound("", sender)
-	}
-
-	response, err := p.handle(&cmd, request)
-	if err == nil {
-		if sendErr := sender.Send(response); sendErr != nil {
-			log.DefaultLogger.Error("could not write response to the client")
-			return sendErr
+	for _, link := range links {
+		if link.Method == request.Method {
+			parameters := link.Pattern.FindStringSubmatch(request.URL)
+			if len(parameters) > 1 {
+				result, err := link.Fn(orgId, parameters, request.Body, p.kafka, p.cassandra)
+				if err == nil {
+					if sendErr := sender.Send(result); sendErr != nil {
+						log.DefaultLogger.Error("could not write response to the client")
+						return sendErr
+					}
+					return nil
+				}
+			}
 		}
-
-		return nil
 	}
-
-	if errors.Is(err, model.ErrNotFound) {
-		return notFound(err.Error(), sender)
-	}
-	if errors.Is(err, model.ErrBadRequest) {
-		return badRequest(err.Error(), sender)
-	}
-	if errors.Is(err, model.ErrUnprocessableEntity) {
-		return unprocessable(err.Error(), sender)
-	}
-
-	return serverError(err.Error(), sender)
-}
-
-func (p ResourceHandler) handle(cmd *model.Command, request *backend.CallResourceRequest) (*backend.CallResourceResponse, error) {
-	if cmd.Resource == "project" && cmd.Action == "list" {
-		return handler.ListProjects(cmd, p.cassandra)
-	}
-
-	if cmd.Resource == "project" && cmd.Action == "get" {
-		return handler.GetProject(cmd, p.cassandra)
-	}
-
-	if cmd.Resource == "project" && cmd.Action == "update" {
-		return handler.UpdateProject(cmd, p.cassandra, p.kafka)
-	}
-
-	if cmd.Resource == "project" && cmd.Action == "delete" {
-		return handler.DeleteProject(cmd, p.kafka)
-	}
-
-	if cmd.Resource == "project" && cmd.Action == "rename" {
-		return handler.RenameProject(cmd, p.kafka)
-	}
-
-	if cmd.Resource == "subsystem" && cmd.Action == "list" {
-		return handler.ListSubsystems(cmd, p.cassandra)
-	}
-
-	if cmd.Resource == "subsystem" && cmd.Action == "update" {
-		return handler.UpdateSubsystem(cmd, p.cassandra, p.kafka)
-	}
-
-	if cmd.Resource == "subsystem" && cmd.Action == "delete" {
-		return handler.DeleteSubsystem(cmd, p.kafka)
-	}
-
-	if cmd.Resource == "subsystem" && cmd.Action == "rename" {
-		return handler.RenameSubsystem(cmd, p.kafka)
-	}
-
-	if cmd.Resource == "datapoint" && cmd.Action == "list" {
-		return handler.ListDatapoints(cmd, p.cassandra)
-	}
-
-	if cmd.Resource == "datapoint" && cmd.Action == "update" {
-		return handler.UpdateDatapoint(cmd, p.cassandra, p.kafka)
-	}
-
-	if cmd.Resource == "datapoint" && cmd.Action == "delete" {
-		return handler.DeleteDatapoint(cmd, p.kafka)
-	}
-
-	if cmd.Resource == "datapoint" && cmd.Action == "rename" {
-		return handler.RenameDatapoint(cmd, p.kafka)
-	}
-
-	return nil, model.ErrNotFound
+	return notFound("", sender)
 }
 
 func getOrgId(request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) (int64, error) {

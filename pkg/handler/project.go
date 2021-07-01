@@ -13,14 +13,14 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
-func ListProjects(cmd *model.Command, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
-	projects := cassandra.FindAllProjects(cmd.OrgID)
+//goland:noinspection GoUnusedParameter
+func ListProjects(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+	projects := cassandra.FindAllProjects(orgId)
 	rawJson, err := json.Marshal(projects)
 	if err != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
 		return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
 	}
-
 	return &backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
@@ -28,34 +28,30 @@ func ListProjects(cmd *model.Command, cassandra client.Cassandra) (*backend.Call
 	}, nil
 }
 
-func GetProject(cmd *model.Command, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
-	values, missingParams := getParams(cmd.Params, "project")
-	if len(missingParams) > 0 {
-		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, missingParams)
-	}
-
-	project := cassandra.GetProject(cmd.OrgID, values[0])
+//goland:noinspection GoUnusedParameter
+func GetProject(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+	project := cassandra.GetProject(orgId, params[1])
 	bytes, err := json.Marshal(project)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
 	}
-
 	return &backend.CallResourceResponse{
 		Status: http.StatusOK,
 		Body:   bytes,
 	}, nil
 }
 
-func UpdateProject(cmd *model.Command, cassandra client.Cassandra, kafka client.Kafka) (*backend.CallResourceResponse, error) {
-	kafka.Send(model.ConfigurationTopic, "updateProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+//goland:noinspection GoUnusedParameter
+func UpdateProject(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+	kafka.Send(model.ConfigurationTopic, "updateProject:1:"+strconv.FormatInt(orgId, 10), body)
 
 	if util.IsDevelopmentMode() {
 		var project model.ProjectSettings
-		if err := json.Unmarshal(cmd.Payload, &project); err != nil {
+		if err := json.Unmarshal(body, &project); err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal project; err: %v", err))
 			return nil, fmt.Errorf("%w: invalid project json", model.ErrBadRequest)
 		}
-		if err := cassandra.UpsertProject(cmd.OrgID, &project); err != nil {
+		if err := cassandra.UpsertProject(orgId, &project); err != nil {
 			return nil, err
 		}
 	}
@@ -64,16 +60,17 @@ func UpdateProject(cmd *model.Command, cassandra client.Cassandra, kafka client.
 	}, nil
 }
 
-func DeleteProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
-	log.DefaultLogger.Info(fmt.Sprintf("cmd: %+v", cmd.Payload))
-	kafka.Send(model.ConfigurationTopic, "deleteProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+//goland:noinspection GoUnusedParameter
+func DeleteProject(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+	kafka.Send(model.ConfigurationTopic, "deleteProject:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
 }
 
-func RenameProject(cmd *model.Command, kafka client.Kafka) (*backend.CallResourceResponse, error) {
-	kafka.Send(model.ConfigurationTopic, "renameProject:1:"+strconv.FormatInt(cmd.OrgID, 10), cmd.Payload)
+//goland:noinspection GoUnusedParameter
+func RenameProject(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+	kafka.Send(model.ConfigurationTopic, "renameProject:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
