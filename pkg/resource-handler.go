@@ -7,6 +7,7 @@ import (
 	"net/http"
 	. "regexp"
 	"strconv"
+	"strings"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/handler"
@@ -27,7 +28,7 @@ type Link struct {
 
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]*`
 
-var links []Link = []Link{
+var links = []Link{
 	// Projects API
 	{Method: "GET", Fn: handler.ListProjects, Pattern: MustCompile(`^_$`)},
 	{Method: "GET", Fn: handler.GetProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
@@ -50,8 +51,9 @@ var links []Link = []Link{
 	{Method: "POST", Fn: handler.RenameDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 }
 
+//goland:noinspection GoUnusedParameter
 func (p ResourceHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
-	orgId, err := getOrgId(request, sender)
+	orgId, err := getOrgId(request)
 	if err != nil {
 		if sendErr := sender.Send(&backend.CallResourceResponse{
 			Status:  http.StatusNotAcceptable,
@@ -68,6 +70,7 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 		if link.Method == request.Method {
 			parameters := link.Pattern.FindStringSubmatch(request.URL)
 			if len(parameters) > 1 {
+				log.DefaultLogger.Info(fmt.Sprintf("Parameters: %q --> %s", strings.Join(parameters, ","), string(request.Body)))
 				result, err := link.Fn(orgId, parameters, request.Body, p.kafka, p.cassandra)
 				if err == nil {
 					if sendErr := sender.Send(result); sendErr != nil {
@@ -82,7 +85,7 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 	return notFound("", sender)
 }
 
-func getOrgId(request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) (int64, error) {
+func getOrgId(request *backend.CallResourceRequest) (int64, error) {
 	orgIdHeader := request.Headers["X-Grafana-Org-Id"][0]
 	return strconv.ParseInt(orgIdHeader, 10, 64)
 }
@@ -91,27 +94,6 @@ func notFound(message string, sender backend.CallResourceResponseSender) error {
 	return sender.Send(&backend.CallResourceResponse{
 		Status: http.StatusNotFound,
 		Body:   createMessageJSON(message),
-	})
-}
-
-func badRequest(message string, sender backend.CallResourceResponseSender) error {
-	return sender.Send(&backend.CallResourceResponse{
-		Status: http.StatusBadRequest,
-		Body:   createMessageJSON(message),
-	})
-}
-
-func unprocessable(message string, sender backend.CallResourceResponseSender) error {
-	return sender.Send(&backend.CallResourceResponse{
-		Status: http.StatusUnprocessableEntity,
-		Body:   []byte("Unable to marshal the entity. Probably wrong format: " + message),
-	})
-}
-
-func serverError(message string, sender backend.CallResourceResponseSender) error {
-	return sender.Send(&backend.CallResourceResponse{
-		Status: http.StatusInternalServerError,
-		Body:   []byte(message),
 	})
 }
 
