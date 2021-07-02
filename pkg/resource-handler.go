@@ -69,7 +69,7 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 	for _, link := range links {
 		if link.Method == request.Method {
 			parameters := link.Pattern.FindStringSubmatch(request.URL)
-			if len(parameters) > 1 {
+			if len(parameters) >= 1 {
 				log.DefaultLogger.Info(fmt.Sprintf("Parameters: %q --> %s", strings.Join(parameters, ","), string(request.Body)))
 				result, err := link.Fn(orgId, parameters, request.Body, p.kafka, p.cassandra)
 				if err == nil {
