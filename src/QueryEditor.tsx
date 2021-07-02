@@ -8,7 +8,10 @@ import { DataSource } from './datasource';
 import { defaultQuery, SensetifDataSourceOptions, SensetifQuery } from './types';
 import { getBackendSrv } from '@grafana/runtime';
 
+export const API_RESOURCES = '/api/plugins/sensetif-datasource/resources/';
+
 type Props = QueryEditorProps<DataSource, SensetifQuery, SensetifDataSourceOptions>;
+
 interface State {
   projects: any[];
   subsystems: any[];
@@ -32,13 +35,42 @@ export class QueryEditor extends PureComponent<Props, State> {
     });
   }
 
-  exec = (cmd: any) => getBackendSrv().post('/api/plugins/sensetif-datasource/resources/exec', cmd);
+  request = (path: string, method: string, body: string, waitTime = 0) => {
+    let srv = getBackendSrv();
+    let request: Promise<any>;
+    switch (method) {
+      case 'GET':
+        request = srv.get(API_RESOURCES + path, body);
+        break;
+      case 'PUT':
+        request = srv.put(API_RESOURCES + path, body);
+        break;
+      case 'POST':
+        request = srv.post(API_RESOURCES + path, body);
+        break;
+      case 'DELETE':
+        request = srv.delete(API_RESOURCES + path);
+        break;
+    }
+    return new Promise<any>((resolve, reject) => {
+      request
+        .then((r) =>
+          setTimeout(() => {
+            resolve(r);
+          }, waitTime)
+        )
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  };
 
-  loadProjects = (): Promise<any[]> => this.exec({ action: 'list', resource: 'project' });
-  loadSubsystems = (projectName: string) =>
-    this.exec({ action: 'list', resource: 'subsystem', params: { project: projectName } });
+  loadProjects = (): Promise<any[]> => this.request('_', 'GET', '', 0);
+
+  loadSubsystems = (projectName: string) => this.request(projectName + '/_', 'GET', '', 0);
+
   loadDatapoints = (projectName: string, subsystemName: string) =>
-    this.exec({ action: 'list', resource: 'datapoint', params: { project: projectName, subsystem: subsystemName } });
+    this.request(projectName + '/' + subsystemName + '/_', 'GET', '', 0);
 
   onQueryProjectChange = (project: string) => {
     const { onChange, query } = this.props;
