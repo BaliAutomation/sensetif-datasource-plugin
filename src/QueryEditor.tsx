@@ -1,12 +1,11 @@
-import defaults from 'lodash/defaults';
-
 import React, { PureComponent } from 'react';
-import { QueryEditorProps } from '@grafana/data';
+import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { Select } from '@grafana/ui';
 
 import { DataSource } from './datasource';
 import { defaultQuery, SensetifDataSourceOptions, SensetifQuery } from './types';
 import { getBackendSrv } from '@grafana/runtime';
+import { defaults } from 'lodash';
 
 export const API_RESOURCES = '/api/plugins/sensetif-datasource/resources/';
 
@@ -26,13 +25,6 @@ export class QueryEditor extends PureComponent<Props, State> {
       subsystems: [],
       projects: [],
     };
-  }
-
-  async componentDidMount() {
-    const projects = await this.loadProjects();
-    this.setState({
-      projects: projects,
-    });
   }
 
   request = (path: string, method: string, body: string, waitTime = 0) => {
@@ -67,60 +59,121 @@ export class QueryEditor extends PureComponent<Props, State> {
 
   loadProjects = (): Promise<any[]> => this.request('_', 'GET', '', 0);
 
-  loadSubsystems = (projectName: string) => this.request(projectName + '/_', 'GET', '', 0);
+  loadSubsystems = (projectName: string): Promise<any[]> => this.request(projectName + '/_', 'GET', '', 0);
 
   loadDatapoints = (projectName: string, subsystemName: string) =>
     this.request(projectName + '/' + subsystemName + '/_', 'GET', '', 0);
 
-  onQueryProjectChange = (project: string) => {
+  onQueryProjectChange = async (name: string) => {
     const { onChange, query } = this.props;
-    onChange({ ...query, project: project });
+
+    onChange({ ...query, project: name, subsystem: '', datapoint: '' });
+
+    const subsystems = await this.loadSubsystems(name);
+    this.setState({
+      subsystems: subsystems,
+      datapoints: [],
+    });
   };
-  onQuerySubsystemChange = (subsystem: string) => {
+
+  onQuerySubsystemChange = async (name: string) => {
     const { onChange, query } = this.props;
-    onChange({ ...query, subsystem: subsystem });
+    const datapoints = await this.loadDatapoints(query.project, name);
+
+    onChange({ ...query, subsystem: name, datapoint: '' });
+
+    this.setState({
+      datapoints: datapoints,
+    });
   };
-  onQueryDatapointChange = (datapoint: string) => {
+
+  onQueryDatapointChange = (name: string) => {
     const { onChange, query } = this.props;
-    onChange({ ...query, datapoint: datapoint });
+    onChange({ ...query, datapoint: name });
+  };
+
+  projectOptions = (): Array<SelectableValue<string>> =>
+    this.options(
+      this.state.projects.map((el) => el.name),
+      this.props.query.project
+    );
+  subsystemOptions = (): Array<SelectableValue<string>> =>
+    this.options(
+      this.state.subsystems.map((el) => el.name),
+      this.props.query.subsystem
+    );
+  datapointOptions = (): Array<SelectableValue<string>> =>
+    this.options(
+      this.state.datapoints.map((el) => el.name),
+      this.props.query.datapoint
+    );
+
+  options = (values: string[], alternative: string): Array<SelectableValue<string>> => {
+    let result = values;
+    if (result.length === 0 && alternative.length !== 0) {
+      result = [alternative];
+    }
+
+    return result.map((el) => this.selectableValue(el));
+  };
+
+  selectableValue = (val: string): SelectableValue<string> => ({ label: val, value: val });
+
+  reloadProjects = async () => {
+    const projects = await this.loadProjects();
+
+    this.setState({
+      projects: projects,
+    });
+  };
+
+  reloadSubsystems = async () => {
+    const subsystems = await this.loadSubsystems(this.props.query.project);
+
+    this.setState({
+      subsystems: subsystems,
+    });
+  };
+
+  reloadDatapoints = async () => {
+    const datapoints = await this.loadDatapoints(this.props.query.project, this.props.query.subsystem);
+
+    this.setState({
+      datapoints: datapoints,
+    });
   };
 
   render() {
     const query = defaults(this.props.query, defaultQuery);
     const { project, subsystem, datapoint } = query;
-    console.log(query);
+
+    const projects = this.projectOptions();
+    const subsystems = this.subsystemOptions();
+    const datapoints = this.datapointOptions();
 
     return (
       <div className="gf-form">
-        <Select
-          value={project}
-          options={this.state.projects.map((el) => ({ label: el.name, value: el.name }))}
-          onChange={(val) => {
-            console.log(val);
-            this.loadSubsystems(val.value).then((result) => this.setState({ subsystems: result }));
-            this.onQueryProjectChange(val.value);
-          }}
+        <Select<string>
+          value={project.length ? project : null}
+          options={projects}
+          onChange={(val) => val.value !== project && this.onQueryProjectChange(val.value!)}
+          onOpenMenu={() => this.state.projects.length === 0 && this.reloadProjects()}
           placeholder={'The project to be queried'}
         />
 
-        <Select
-          value={subsystem}
-          options={this.state.subsystems.map((el) => ({ label: el.name, value: el.name }))}
-          onChange={(val) => {
-            console.log(val);
-            this.loadDatapoints(project, val.value).then((result) => this.setState({ datapoints: result }));
-            this.onQuerySubsystemChange(val.value);
-          }}
+        <Select<string>
+          value={subsystem.length ? subsystem : null}
+          options={subsystems}
+          onChange={(val) => val.value !== subsystem && this.onQuerySubsystemChange(val.value!)}
+          onOpenMenu={() => this.state.subsystems.length === 0 && this.reloadSubsystems()}
           placeholder={'The Subsystem within the project to be queried'}
         />
 
-        <Select
-          value={datapoint}
-          options={this.state.datapoints.map((el) => ({ label: el.name, value: el.name }))}
-          onChange={(val) => {
-            console.log(val);
-            this.onQueryDatapointChange(val.value);
-          }}
+        <Select<string>
+          value={datapoint.length ? datapoint : null}
+          options={datapoints}
+          onChange={(val) => val.value !== datapoint && this.onQueryDatapointChange(val.value!)}
+          onOpenMenu={() => this.state.datapoints.length === 0 && this.reloadDatapoints()}
           placeholder={'The Datapoint in the Subsystem'}
         />
       </div>
