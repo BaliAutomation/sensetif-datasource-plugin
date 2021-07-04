@@ -71,15 +71,15 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 	to := query.TimeRange.To
 
 	response := backend.DataResponse{}
-	var model model.SensorRef
-	response.Error = JSON.Unmarshal(query.JSON, &model)
+	var model_ model.SensorRef
+	response.Error = JSON.Unmarshal(query.JSON, &model_)
 	if response.Error != nil {
 		return response
 	}
 
 	log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
-	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model))
-	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model, from, to)
+	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model_))
+	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to)
 
 	times := []time.Time{}
 	values := []float64{}
@@ -90,7 +90,7 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 
 	frame := data.NewFrame("response")
 	frame.Fields = append(frame.Fields, data.NewField("time", nil, times))
-	frame.Fields = append(frame.Fields, data.NewField("values", nil, values))
+	frame.Fields = append(frame.Fields, data.NewField(model_.Label, nil, values))
 	response.Frames = append(response.Frames, frame)
 	return response
 }
