@@ -32,7 +32,7 @@ func (sds *SensetifDatasource) QueryData(ctx context.Context, req *backend.Query
 	orgId := req.PluginContext.OrgID
 	response := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
-		res := sds.query(ctx, orgId, q)
+		res := sds.query(ctx, q.RefID, orgId, q)
 		response.Responses[q.RefID] = res
 	}
 	return response, nil
@@ -43,7 +43,7 @@ type queryModel struct {
 	Parameters string `json:"parameters"`
 }
 
-func (sds *SensetifDatasource) query(ctx context.Context, orgId int64, query backend.DataQuery) backend.DataResponse {
+func (sds *SensetifDatasource) query(ctx context.Context, queryName string, orgId int64, query backend.DataQuery) backend.DataResponse {
 	log.DefaultLogger.Info("query()")
 	response := backend.DataResponse{}
 	var qm queryModel
@@ -60,26 +60,26 @@ func (sds *SensetifDatasource) query(ctx context.Context, orgId int64, query bac
 	log.DefaultLogger.Info("format is " + qm.Format)
 	switch qm.Format {
 	case "timeseries":
-		return sds.executeTimeseriesQuery(qm.Parameters, orgId, query)
+		return sds.executeTimeseriesQuery(queryName, qm.Parameters, orgId, query)
 	}
 	response.Error = fmt.Errorf("unknown Format: %s", qm.Format)
 	return response
 }
 
-func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
+func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
 	from := query.TimeRange.From
 	to := query.TimeRange.To
 
 	response := backend.DataResponse{}
-	var qm model.Query
-	response.Error = JSON.Unmarshal(query.JSON, &qm)
+	var model_ model.SensorRef
+	response.Error = JSON.Unmarshal(query.JSON, &model_)
 	if response.Error != nil {
 		return response
 	}
 
 	log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
-	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", qm))
-	timeseries := sds.cassandraClient.QueryTimeseries(orgId, *qm.SensorRef, from, to)
+	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model_))
+	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to)
 
 	times := []time.Time{}
 	values := []float64{}
@@ -89,13 +89,8 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 	}
 
 	frame := data.NewFrame("response")
-
-	valuesFieldName := qm.String()
-	if len(qm.Alias) > 0 {
-		valuesFieldName = qm.Alias
-	}
 	frame.Fields = append(frame.Fields, data.NewField("time", nil, times))
-	frame.Fields = append(frame.Fields, data.NewField(valuesFieldName, nil, values))
+	frame.Fields = append(frame.Fields, data.NewField(queryName, nil, values))
 	response.Frames = append(response.Frames, frame)
 	return response
 }
