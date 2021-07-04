@@ -50,7 +50,6 @@ func GetSubsystem(orgId int64, params []string, body []byte, kafka client.Kafka,
 		Headers: make(map[string][]string),
 		Body:    bytes,
 	}, nil
-
 }
 
 //goland:noinspection GoUnusedParameter
@@ -77,9 +76,18 @@ func DeleteSubsystem(orgId int64, params []string, body []byte, kafka client.Kaf
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
 	key := "deleteSubsystem:1:" + strconv.FormatInt(orgId, 10)
-	kafka.Send(model.ConfigurationTopic, key, body)
+	data, err := json.Marshal(map[string]string{
+		"project":   params[1],
+		"subsystem": params[2],
+	})
+	if err == nil {
+		kafka.Send(model.ConfigurationTopic, key, data)
+		return &backend.CallResourceResponse{
+			Status: http.StatusAccepted,
+		}, nil
+	}
 	return &backend.CallResourceResponse{
-		Status: http.StatusAccepted,
+		Status: http.StatusBadRequest,
 	}, nil
 }
 

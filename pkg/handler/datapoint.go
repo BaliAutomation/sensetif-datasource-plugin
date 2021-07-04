@@ -70,9 +70,23 @@ func UpdateDatapoint(orgId int64, params []string, body []byte, kafka client.Kaf
 
 //goland:noinspection GoUnusedParameter
 func DeleteDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
-	kafka.Send(model.ConfigurationTopic, "deleteDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
+	if len(params) < 4 {
+		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
+	}
+	key := "deleteDatapoint:1:" + strconv.FormatInt(orgId, 10)
+	data, err := json.Marshal(map[string]string{
+		"project":   params[1],
+		"subsystem": params[2],
+		"datapoint": params[3],
+	})
+	if err == nil {
+		kafka.Send(model.ConfigurationTopic, key, data)
+		return &backend.CallResourceResponse{
+			Status: http.StatusAccepted,
+		}, nil
+	}
 	return &backend.CallResourceResponse{
-		Status: http.StatusAccepted,
+		Status: http.StatusBadRequest,
 	}, nil
 }
 

@@ -62,9 +62,21 @@ func UpdateProject(orgId int64, params []string, body []byte, kafka client.Kafka
 
 //goland:noinspection GoUnusedParameter
 func DeleteProject(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
-	kafka.Send(model.ConfigurationTopic, "deleteProject:1:"+strconv.FormatInt(orgId, 10), body)
+	if len(params) < 2 {
+		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
+	}
+	key := "deleteProject:1:" + strconv.FormatInt(orgId, 10)
+	data, err := json.Marshal(map[string]string{
+		"project": params[1],
+	})
+	if err == nil {
+		kafka.Send(model.ConfigurationTopic, key, data)
+		return &backend.CallResourceResponse{
+			Status: http.StatusAccepted,
+		}, nil
+	}
 	return &backend.CallResourceResponse{
-		Status: http.StatusAccepted,
+		Status: http.StatusBadRequest,
 	}, nil
 }
 

@@ -46,15 +46,3 @@ export enum TimestampType {
   iso8601_zoned,
   iso8601_offset,
 }
-
-export interface Datapoint {
-  name: string;
-  description: string;
-  url: string;
-  user: string;
-  password: string;
-  method: string;
-  acquisitiontype: string;
-  parsingpath: string;
-  interval: string;
-}
