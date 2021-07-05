@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
-import { Input, Select } from '@grafana/ui';
+import { Select } from '@grafana/ui';
 
 import { DataSource } from './datasource';
 import { defaultQuery, SensetifDataSourceOptions, SensetifQuery } from './types';
@@ -92,11 +92,6 @@ export class QueryEditor extends PureComponent<Props, State> {
     onChange({ ...query, datapoint: name });
   };
 
-  onAliasChange = (value: string) => {
-    const { onChange, query } = this.props;
-    onChange({ ...query, alias: value });
-  };
-
   projectOptions = (): Array<SelectableValue<string>> =>
     this.options(
       this.state.projects.map((el) => el.name),
@@ -152,7 +147,7 @@ export class QueryEditor extends PureComponent<Props, State> {
     let result = defaultQuery;
 
     // if some queries already exists, init based on the last configured
-    if (this.props.queries!.length > 1) {
+    if (this.props.queries && this.props.queries!.length > 1) {
       result = this.props.queries![this.props.queries!.length - 2];
     }
 
@@ -160,9 +155,10 @@ export class QueryEditor extends PureComponent<Props, State> {
   };
 
   render() {
+    console.log(this.props);
     const defQuery = this.getDefaultQuery();
     const query = defaults(this.props.query, defQuery);
-    const { project, subsystem, datapoint, alias } = query;
+    const { project, subsystem, datapoint } = query;
 
     const projects = this.projectOptions();
     const subsystems = this.subsystemOptions();
@@ -193,8 +189,6 @@ export class QueryEditor extends PureComponent<Props, State> {
           onOpenMenu={() => this.state.datapoints.length === 0 && this.reloadDatapoints()}
           placeholder={'The Datapoint in the Subsystem'}
         />
-
-        <Input value={alias} placeholder="alias" onChange={(e) => this.onAliasChange(e.currentTarget.value)} css="" />
       </div>
     );
   }

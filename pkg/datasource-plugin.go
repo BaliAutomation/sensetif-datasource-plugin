@@ -29,10 +29,11 @@ type SensetifDatasource struct {
 
 func (sds *SensetifDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	log.DefaultLogger.Info(fmt.Sprintf("QueryData, ctx=%+v, req=%+v", ctx, req))
+	log.DefaultLogger.Info(fmt.Sprintf("Request, req=%s", string(req.Queries[0].JSON)))
 	orgId := req.PluginContext.OrgID
 	response := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
-		res := sds.query(ctx, orgId, q)
+		res := sds.query(q.RefID, orgId, q)
 		response.Responses[q.RefID] = res
 	}
 	return response, nil
@@ -43,8 +44,7 @@ type queryModel struct {
 	Parameters string `json:"parameters"`
 }
 
-func (sds *SensetifDatasource) query(ctx context.Context, orgId int64, query backend.DataQuery) backend.DataResponse {
-	log.DefaultLogger.Info("query()")
+func (sds *SensetifDatasource) query(queryName string, orgId int64, query backend.DataQuery) backend.DataResponse {
 	response := backend.DataResponse{}
 	var qm queryModel
 	response.Error = JSON.Unmarshal(query.JSON, &qm)
@@ -60,26 +60,27 @@ func (sds *SensetifDatasource) query(ctx context.Context, orgId int64, query bac
 	log.DefaultLogger.Info("format is " + qm.Format)
 	switch qm.Format {
 	case "timeseries":
-		return sds.executeTimeseriesQuery(qm.Parameters, orgId, query)
+		maxValues := int(query.MaxDataPoints)
+		return sds.executeTimeseriesQuery(queryName, maxValues, qm.Parameters, orgId, query)
 	}
 	response.Error = fmt.Errorf("unknown Format: %s", qm.Format)
 	return response
 }
 
-func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
+func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValues int, parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
 	from := query.TimeRange.From
 	to := query.TimeRange.To
 
 	response := backend.DataResponse{}
-	var qm model.Query
-	response.Error = JSON.Unmarshal(query.JSON, &qm)
+	var model_ model.SensorRef
+	response.Error = JSON.Unmarshal(query.JSON, &model_)
 	if response.Error != nil {
 		return response
 	}
 
 	log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
-	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", qm))
-	timeseries := sds.cassandraClient.QueryTimeseries(orgId, *qm.SensorRef, from, to)
+	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model_))
+	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to, maxValues)
 
 	times := []time.Time{}
 	values := []float64{}
@@ -88,23 +89,26 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(parameters string, orgId i
 		values = append(values, t.Value)
 	}
 
-	frame := data.NewFrame("response")
-
-	valuesFieldName := qm.String()
-	if len(qm.Alias) > 0 {
-		valuesFieldName = qm.Alias
-	}
-	frame.Fields = append(frame.Fields, data.NewField("time", nil, times))
-	frame.Fields = append(frame.Fields, data.NewField(valuesFieldName, nil, values))
+	frame := data.NewFrame(queryName,
+		data.NewField("Time", nil, times),
+		data.NewField("Value", nil, values),
+	)
 	response.Frames = append(response.Frames, frame)
 	return response
 }
 
 func (sds *SensetifDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	log.DefaultLogger.Info("Check Health")
-	var status = backend.HealthStatusOk
-	var message = "Data source is working"
-	// TODO; Make sure Cassandra is operational
+	healthy := sds.cassandraClient.IsHealthy()
+	var status backend.HealthStatus
+	var message string
+	if healthy {
+		status = backend.HealthStatusOk
+		message = "Data source is working."
+	} else {
+		status = backend.HealthStatusError
+		message = "Data source is not available. Contact Sensetif."
+	}
 	return &backend.CheckHealthResult{
 		Status:  status,
 		Message: message,

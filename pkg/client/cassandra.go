@@ -12,7 +12,7 @@ import (
 )
 
 type Cassandra interface {
-	QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time) []model.TsPair
+	QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValue int) []model.TsPair
 	GetProject(orgId int64, name string) *model.ProjectSettings
 
 	UpsertProject(orgId int64, project *model.ProjectSettings) error
@@ -28,6 +28,7 @@ type Cassandra interface {
 	Shutdown()
 	Reinitialize()
 	Err() error
+	IsHealthy() bool
 }
 
 type CassandraClient struct {
@@ -50,6 +51,10 @@ func (cass *CassandraClient) InitializeCassandra(hosts []string) {
 	cass.Reinitialize()
 }
 
+func (cass *CassandraClient) IsHealthy() bool {
+	return !cass.session.Closed()
+}
+
 func (cass *CassandraClient) Reinitialize() {
 	log.DefaultLogger.Info("Re-initialize Cassandra session: " + fmt.Sprintf("%+v", cass.session))
 	if cass.session != nil {
@@ -63,16 +68,19 @@ func (cass *CassandraClient) Reinitialize() {
 	log.DefaultLogger.Info("Cassandra session: " + fmt.Sprintf("%+v", cass.session))
 }
 
-func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time) []model.TsPair {
+func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
 	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
 	var result []model.TsPair
-	startYearMonth := from.Year()*12 + int(from.Month())
-	endYearMonth := to.Year()*12 + int(to.Month())
+	startYearMonth := from.Year()*12 + int(from.Month()) - 1
+	endYearMonth := to.Year()*12 + int(to.Month()) - 1
+	log.DefaultLogger.Info(fmt.Sprintf("yearMonths:  start=%d, end=%d", startYearMonth, endYearMonth))
+
 	for yearmonth := startYearMonth; yearmonth <= endYearMonth; yearmonth++ {
-		scanner := cass.session.
-			Query(fmt.Sprintf(tsQuery, cass.clusterConfig.Keyspace, timeseriesTablename), org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to).
-			Iter().
-			Scanner()
+		queryText := fmt.Sprintf(tsQuery, cass.clusterConfig.Keyspace, timeseriesTablename)
+		query := cass.session.Query(queryText, org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to)
+		query.Idempotent(true)
+		query.Consistency(gocql.One)
+		scanner := query.Iter().Scanner()
 		for scanner.Next() {
 			var rowValue model.TsPair
 			err := scanner.Scan(&rowValue.Value, &rowValue.TS)
@@ -81,8 +89,30 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 			}
 			result = append(result, rowValue)
 		}
+		query.Release()
 	}
-	log.DefaultLogger.Info(fmt.Sprintf("Found: %d datapoints", len(result)))
+	resultLength := len(result)
+	log.DefaultLogger.Info(fmt.Sprintf("Max: %d, found: %d datapoints", maxValues, resultLength))
+	result = reduceSize(resultLength, maxValues, result)
+	log.DefaultLogger.Info(fmt.Sprintf("Returning %d datapoints", resultLength))
+	return result
+}
+
+func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.TsPair {
+	if resultLength > maxValues && resultLength > 0 && maxValues > 0 {
+		// Grafana has a MaxDatapoints expectations that we need to deal with
+		var factor int
+		factor = resultLength/maxValues + 1
+		newSize := resultLength/factor + 1
+		resultIndex := resultLength - 1
+		var downsized = make([]model.TsPair, newSize, newSize)
+		for i := newSize - 1; i >= 0; i = i - 1 {
+			downsized[i] = result[resultIndex]
+			// TODO; Should we have some type of function for this reduction?? Average, Min, Max?
+			resultIndex = resultIndex - factor
+		}
+		result = downsized
+	}
 	return result
 }
 
@@ -254,7 +284,7 @@ const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,auth,va
 
 const timeseriesTablename = "timeseries"
 
-const tsQuery = "SELECT value,ts FROM " + timeseriesTablename +
+const tsQuery = "SELECT value,ts FROM %s.%s" +
 	" WHERE" +
 	" orgId = ?" +
 	" AND" +
