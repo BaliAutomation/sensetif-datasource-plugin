@@ -29,6 +29,7 @@ type SensetifDatasource struct {
 
 func (sds *SensetifDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	log.DefaultLogger.Info(fmt.Sprintf("QueryData, ctx=%+v, req=%+v", ctx, req))
+	log.DefaultLogger.Info(fmt.Sprintf("Request, req=%s", string(req.Queries[0].JSON)))
 	orgId := req.PluginContext.OrgID
 	response := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
