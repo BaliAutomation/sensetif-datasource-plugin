@@ -66,8 +66,8 @@ func (cass *CassandraClient) Reinitialize() {
 func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
 	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
 	var result []model.TsPair
-	startYearMonth := from.Year()*12 + int(from.Month())
-	endYearMonth := to.Year()*12 + int(to.Month())
+	startYearMonth := from.Year()*12 + int(from.Month()) - 1
+	endYearMonth := to.Year()*12 + int(to.Month()) - 1
 	log.DefaultLogger.Info(fmt.Sprintf("yearMonths:  start=%d, end=%d", startYearMonth, endYearMonth))
 
 	for yearmonth := startYearMonth; yearmonth <= endYearMonth; yearmonth++ {
