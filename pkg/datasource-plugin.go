@@ -90,8 +90,8 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValue
 	}
 
 	frame := data.NewFrame(queryName,
-		data.NewField("time", nil, times),
-		data.NewField(queryName, nil, values),
+		data.NewField("Time", nil, times),
+		data.NewField("Value", nil, values),
 	)
 	response.Frames = append(response.Frames, frame)
 	return response
