@@ -87,6 +87,7 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 			org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from.Format(time.RFC3339), to.Format(time.RFC3339)))
 		scanner := query.Iter().Scanner()
 		for scanner.Next() {
+			log.DefaultLogger.Info("NICLAS!!")
 			var rowValue model.TsPair
 			err := scanner.Scan(&rowValue.Value, &rowValue.TS)
 			if err != nil {
