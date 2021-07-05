@@ -148,8 +148,20 @@ export class QueryEditor extends PureComponent<Props, State> {
     });
   };
 
+  getDefaultQuery = (): Partial<SensetifQuery> => {
+    let result = defaultQuery;
+
+    // if some queries already exists, init based on the last configured
+    if (this.props.queries!.length > 1) {
+      result = this.props.queries![this.props.queries!.length - 2];
+    }
+
+    return result;
+  };
+
   render() {
-    const query = defaults(this.props.query, defaultQuery);
+    const defQuery = this.getDefaultQuery();
+    const query = defaults(this.props.query, defQuery);
     const { project, subsystem, datapoint, alias } = query;
 
     const projects = this.projectOptions();
