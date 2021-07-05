@@ -73,8 +73,18 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 	for yearmonth := startYearMonth; yearmonth <= endYearMonth; yearmonth++ {
 		queryText := fmt.Sprintf(tsQuery, cass.clusterConfig.Keyspace, timeseriesTablename)
 		query := cass.session.Query(queryText, org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to)
+		query.Idempotent(true)
+		query.Consistency(gocql.One)
 		log.DefaultLogger.Info(fmt.Sprintf("queryText: %s", queryText))
-		log.DefaultLogger.Info(fmt.Sprintf("query: %+v", query))
+		log.DefaultLogger.Info(fmt.Sprintf("values: \n"+
+			"orgid = %d\n"+
+			"project = %s\n"+
+			"subsystem = %s\n"+
+			"yearmonth = %d\n"+
+			"datapoint = %s\n"+
+			"from = %s\n"+
+			"to = %s",
+			org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from.Format(time.RFC3339), to.Format(time.RFC3339)))
 		scanner := query.Iter().Scanner()
 		for scanner.Next() {
 			var rowValue model.TsPair
@@ -84,6 +94,7 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 			}
 			result = append(result, rowValue)
 		}
+		query.Release()
 	}
 	resultLength := len(result)
 	log.DefaultLogger.Info(fmt.Sprintf("Max: %d, found: %d datapoints", maxValues, resultLength))
