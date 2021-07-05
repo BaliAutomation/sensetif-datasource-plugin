@@ -60,13 +60,14 @@ func (sds *SensetifDatasource) query(ctx context.Context, queryName string, orgI
 	log.DefaultLogger.Info("format is " + qm.Format)
 	switch qm.Format {
 	case "timeseries":
-		return sds.executeTimeseriesQuery(queryName, qm.Parameters, orgId, query)
+		maxValues := int(query.MaxDataPoints)
+		return sds.executeTimeseriesQuery(queryName, maxValues, qm.Parameters, orgId, query)
 	}
 	response.Error = fmt.Errorf("unknown Format: %s", qm.Format)
 	return response
 }
 
-func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
+func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValues int, parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
 	from := query.TimeRange.From
 	to := query.TimeRange.To
 
@@ -79,7 +80,7 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, paramete
 
 	log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
 	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model_))
-	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to)
+	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to, maxValues)
 
 	times := []time.Time{}
 	values := []float64{}
