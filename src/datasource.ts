@@ -6,12 +6,4 @@ export class DataSource extends DataSourceWithBackend<SensetifQuery, SensetifDat
   constructor(instanceSettings: DataSourceInstanceSettings<SensetifDataSourceOptions>) {
     super(instanceSettings);
   }
-
-  getQueryDisplayText(query: SensetifQuery) {
-    let result = '';
-    result += query.project.length && query.project;
-    result += query.subsystem.length && `/${query.subsystem}`;
-    result += query.datapoint.length && `/${query.datapoint}`;
-    return result;
-  }
 }
