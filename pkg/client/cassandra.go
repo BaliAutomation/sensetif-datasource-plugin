@@ -28,6 +28,7 @@ type Cassandra interface {
 	Shutdown()
 	Reinitialize()
 	Err() error
+	IsHealthy() bool
 }
 
 type CassandraClient struct {
@@ -48,6 +49,10 @@ func (cass *CassandraClient) InitializeCassandra(hosts []string) {
 	})
 	cass.clusterConfig.Keyspace = "ks_sensetif"
 	cass.Reinitialize()
+}
+
+func (cass *CassandraClient) IsHealthy() bool {
+	return !cass.session.Closed()
 }
 
 func (cass *CassandraClient) Reinitialize() {

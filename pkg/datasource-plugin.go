@@ -33,7 +33,7 @@ func (sds *SensetifDatasource) QueryData(ctx context.Context, req *backend.Query
 	orgId := req.PluginContext.OrgID
 	response := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
-		res := sds.query(ctx, q.RefID, orgId, q)
+		res := sds.query(q.RefID, orgId, q)
 		response.Responses[q.RefID] = res
 	}
 	return response, nil
@@ -44,8 +44,7 @@ type queryModel struct {
 	Parameters string `json:"parameters"`
 }
 
-func (sds *SensetifDatasource) query(ctx context.Context, queryName string, orgId int64, query backend.DataQuery) backend.DataResponse {
-	log.DefaultLogger.Info("query()")
+func (sds *SensetifDatasource) query(queryName string, orgId int64, query backend.DataQuery) backend.DataResponse {
 	response := backend.DataResponse{}
 	var qm queryModel
 	response.Error = JSON.Unmarshal(query.JSON, &qm)
@@ -90,18 +89,26 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValue
 		values = append(values, t.Value)
 	}
 
-	frame := data.NewFrame("response")
-	frame.Fields = append(frame.Fields, data.NewField("time", nil, times))
-	frame.Fields = append(frame.Fields, data.NewField(queryName, nil, values))
+	frame := data.NewFrame(queryName,
+		data.NewField("time", nil, times),
+		data.NewField(queryName, nil, values),
+	)
 	response.Frames = append(response.Frames, frame)
 	return response
 }
 
 func (sds *SensetifDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	log.DefaultLogger.Info("Check Health")
-	var status = backend.HealthStatusOk
-	var message = "Data source is working"
-	// TODO; Make sure Cassandra is operational
+	healthy := sds.cassandraClient.IsHealthy()
+	var status backend.HealthStatus
+	var message string
+	if healthy {
+		status = backend.HealthStatusOk
+		message = "Data source is working."
+	} else {
+		status = backend.HealthStatusError
+		message = "Data source is not available. Contact Sensetif."
+	}
 	return &backend.CheckHealthResult{
 		Status:  status,
 		Message: message,
