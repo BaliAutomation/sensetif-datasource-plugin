@@ -75,19 +75,8 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 		query := cass.session.Query(queryText, org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to)
 		query.Idempotent(true)
 		query.Consistency(gocql.One)
-		log.DefaultLogger.Info(fmt.Sprintf("queryText: %s", queryText))
-		log.DefaultLogger.Info(fmt.Sprintf("values: \n"+
-			"orgid = %d\n"+
-			"project = %s\n"+
-			"subsystem = %s\n"+
-			"yearmonth = %d\n"+
-			"datapoint = %s\n"+
-			"from = %s\n"+
-			"to = %s",
-			org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from.Format(time.RFC3339), to.Format(time.RFC3339)))
 		scanner := query.Iter().Scanner()
 		for scanner.Next() {
-			log.DefaultLogger.Info("NICLAS!!")
 			var rowValue model.TsPair
 			err := scanner.Scan(&rowValue.Value, &rowValue.TS)
 			if err != nil {
@@ -290,7 +279,7 @@ const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,auth,va
 
 const timeseriesTablename = "timeseries"
 
-const tsQuery = "SELECT value,ts FROM " + timeseriesTablename +
+const tsQuery = "SELECT value,ts FROM %s.%s" +
 	" WHERE" +
 	" orgId = ?" +
 	" AND" +
