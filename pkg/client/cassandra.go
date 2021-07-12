@@ -94,7 +94,7 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 	resultLength := len(result)
 	log.DefaultLogger.Info(fmt.Sprintf("Max: %d, found: %d datapoints", maxValues, resultLength))
 	result = reduceSize(resultLength, maxValues, result)
-	log.DefaultLogger.Info(fmt.Sprintf("Returning %d datapoints", resultLength))
+	log.DefaultLogger.Info(fmt.Sprintf("Returning %d datapoints", len(result)))
 	return result
 }
 
@@ -107,13 +107,12 @@ func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.
 		newSize := resultLength/factor + 1
 		resultIndex := resultLength - 1
 		var downsized = make([]model.TsPair, newSize, newSize)
-		log.DefaultLogger.Info(fmt.Sprintf("Downsized: %d, factor:%d", newSize, factor))
 		for i := newSize - 1; i >= 0; i = i - 1 {
 			downsized[i] = result[resultIndex]
 			// TODO; Should we have some type of function for this reduction?? Average, Min, Max?
 			resultIndex = resultIndex - factor
 		}
-		result = downsized
+		return downsized
 	}
 	return result
 }
