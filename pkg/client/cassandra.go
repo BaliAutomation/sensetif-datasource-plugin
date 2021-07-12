@@ -100,12 +100,14 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 
 func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.TsPair {
 	if resultLength > maxValues && resultLength > 0 && maxValues > 0 {
+		log.DefaultLogger.Info(fmt.Sprintf("Reducing datapoints from %d to %d", resultLength, maxValues))
 		// Grafana has a MaxDatapoints expectations that we need to deal with
 		var factor int
 		factor = resultLength/maxValues + 1
 		newSize := resultLength/factor + 1
 		resultIndex := resultLength - 1
 		var downsized = make([]model.TsPair, newSize, newSize)
+		log.DefaultLogger.Info(fmt.Sprintf("Downsized: %d, factor:%d", newSize, factor))
 		for i := newSize - 1; i >= 0; i = i - 1 {
 			downsized[i] = result[resultIndex]
 			// TODO; Should we have some type of function for this reduction?? Average, Min, Max?
