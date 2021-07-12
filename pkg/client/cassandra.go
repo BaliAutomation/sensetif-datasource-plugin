@@ -90,14 +90,11 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 			result = append(result, rowValue)
 		}
 	}
-	resultLength := len(result)
-	log.DefaultLogger.Info(fmt.Sprintf("Max: %d, found: %d datapoints", maxValues, resultLength))
-	result = reduceSize(resultLength, maxValues, result)
-	log.DefaultLogger.Info(fmt.Sprintf("Returning %d datapoints", len(result)))
-	return result
+	return reduceSize(maxValues, result)
 }
 
-func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.TsPair {
+func reduceSize(maxValues int, result []model.TsPair) []model.TsPair {
+	resultLength := len(result)
 	if resultLength > maxValues && resultLength > 0 && maxValues > 0 {
 		log.DefaultLogger.Info(fmt.Sprintf("Reducing datapoints from %d to %d", resultLength, maxValues))
 		// Grafana has a MaxDatapoints expectations that we need to deal with
@@ -107,7 +104,6 @@ func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.
 		var downsized = make([]model.TsPair, newSize, newSize)
 		resultIndex := resultLength - 1
 		for i := newSize - 1; i >= 0; i = i - 1 {
-			log.DefaultLogger.Info(fmt.Sprintf("i:%d, downsized:%d, resultIndex:%d, result:%d", i, len(downsized), resultIndex, len(result)))
 			downsized[i] = result[resultIndex]
 			// TODO; Should we have some type of function for this reduction?? Average, Min, Max?
 			resultIndex = resultIndex - factor
@@ -115,6 +111,7 @@ func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.
 		log.DefaultLogger.Info(fmt.Sprintf("Reduced to %d", len(downsized)))
 		return downsized
 	}
+	log.DefaultLogger.Info(fmt.Sprintf("Returning %d datapoints", len(result)))
 	return result
 }
 
