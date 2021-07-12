@@ -107,12 +107,12 @@ func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.
 		resultIndex := resultLength - 1
 		var downsized = make([]model.TsPair, newSize, newSize)
 		for i := newSize - 1; i >= 0; i = i - 1 {
-			log.DefaultLogger.Info("i:%d, downsized:%d, resultIndex:%d, result:%d", i, len(downsized), resultIndex, len(result))
+			log.DefaultLogger.Info(fmt.Sprintf("i:%d, downsized:%d, resultIndex:%d, result:%d", i, len(downsized), resultIndex, len(result)))
 			downsized[i] = result[resultIndex]
 			// TODO; Should we have some type of function for this reduction?? Average, Min, Max?
 			resultIndex = resultIndex - factor
 		}
-		log.DefaultLogger.Info("Niclas 1")
+		log.DefaultLogger.Info(fmt.Sprintf("Reduced to %d", len(downsized)))
 		return downsized
 	}
 	return result
