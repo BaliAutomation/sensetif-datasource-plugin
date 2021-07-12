@@ -103,9 +103,9 @@ func reduceSize(resultLength int, maxValues int, result []model.TsPair) []model.
 		// Grafana has a MaxDatapoints expectations that we need to deal with
 		var factor int
 		factor = resultLength/maxValues + 1
-		newSize := resultLength/factor + 1
-		resultIndex := resultLength - 1
+		newSize := resultLength / factor
 		var downsized = make([]model.TsPair, newSize, newSize)
+		resultIndex := resultLength - 1
 		for i := newSize - 1; i >= 0; i = i - 1 {
 			log.DefaultLogger.Info(fmt.Sprintf("i:%d, downsized:%d, resultIndex:%d, result:%d", i, len(downsized), resultIndex, len(result)))
 			downsized[i] = result[resultIndex]
