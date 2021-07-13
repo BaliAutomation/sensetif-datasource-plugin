@@ -53,8 +53,14 @@ var links = []Link{
 
 //goland:noinspection GoUnusedParameter
 func (p ResourceHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s", request.URL, request.Path, request.Method))
 	if strings.IndexAny(request.Path, "__/") == 0 {
-		content, err := HandleFile(strings.TrimLeft(request.Path, "__/"))
+		filename := strings.TrimLeft(request.Path, "__/")
+		content, err := HandleFile(filename)
+		if err != nil {
+			log.DefaultLogger.Error("Could not read file: " + filename + " : " + err.Error())
+			return err
+		}
 		if err = sender.Send(content); err != nil {
 			log.DefaultLogger.Error("could not write content to the client. " + err.Error())
 			return err
