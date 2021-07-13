@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"io/ioutil"
@@ -8,8 +9,9 @@ import (
 )
 
 func HandleFile(path string) (*backend.CallResourceResponse, error) {
-
+	log.DefaultLogger.Info(fmt.Sprintf("Readfile: %s", path))
 	filename := "/var/lib/grafana/plugins/sensetif-datasource/" + path
+	log.DefaultLogger.Info(fmt.Sprintf("Readfile: %s", filename))
 	return returnFileContent(filename)
 }
 
