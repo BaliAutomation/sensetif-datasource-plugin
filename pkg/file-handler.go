@@ -1,17 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 func HandleFile(path string) (*backend.CallResourceResponse, error) {
-	log.DefaultLogger.Info(fmt.Sprintf("Readfile: %s", path))
+
+	if strings.Contains(path, "..") {
+		return &backend.CallResourceResponse{
+			Status:  http.StatusNotFound,
+			Headers: make(map[string][]string),
+			Body:    []byte("Invalid filename " + path + "."),
+		}, nil
+	}
+
 	filename := "/var/lib/grafana/plugins/sensetif-datasource/" + path
-	log.DefaultLogger.Info(fmt.Sprintf("Readfile: %s", filename))
 	return returnFileContent(filename)
 }
 
@@ -26,9 +33,12 @@ func returnFileContent(filename string) (*backend.CallResourceResponse, error) {
 		}, nil
 	}
 
+	var headers = map[string][]string{
+		"Content-Type": {"text/html"},
+	}
 	return &backend.CallResourceResponse{
 		Status:  http.StatusOK,
-		Headers: make(map[string][]string),
+		Headers: headers,
 		Body:    policy,
 	}, nil
 }

@@ -54,24 +54,9 @@ var links = []Link{
 //goland:noinspection GoUnusedParameter
 func (p ResourceHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s", request.URL, request.Path, request.Method))
-	if strings.IndexAny(request.Path, "__/") == 0 {
-		log.DefaultLogger.Info("Niclas 1")
-		filename := strings.TrimLeft(request.Path, "__/")
-		log.DefaultLogger.Info("Niclas 2")
-		content, err := HandleFile(filename)
-		log.DefaultLogger.Info("Niclas 3")
-		if err != nil {
-			log.DefaultLogger.Info("Niclas 4")
-			log.DefaultLogger.Error("Could not read file: " + filename + " : " + err.Error())
-			return err
-		}
-		err = sender.Send(content)
-		if err != nil {
-			log.DefaultLogger.Error("could not write content to the client. " + err.Error())
-			return err
-		}
-		log.DefaultLogger.Info("Niclas 6")
-		return nil
+	err2, found := handleFileRequests(request, sender)
+	if found {
+		return err2
 	}
 	orgId, err := getOrgId(request)
 	if err != nil {
@@ -103,6 +88,24 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 		}
 	}
 	return notFound("", sender)
+}
+
+func handleFileRequests(request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) (error, bool) {
+	if strings.IndexAny(request.Path, "__/") == 0 {
+		filename := strings.TrimLeft(request.Path, "__/")
+		content, err := HandleFile(filename)
+		if err != nil {
+			log.DefaultLogger.Error("Could not read file: " + filename + " : " + err.Error())
+			return err, true
+		}
+		err = sender.Send(content)
+		if err != nil {
+			log.DefaultLogger.Error("could not write content to the client. " + err.Error())
+			return err, true
+		}
+		return nil, true
+	}
+	return nil, false
 }
 
 func getOrgId(request *backend.CallResourceRequest) (int64, error) {
