@@ -29,6 +29,9 @@ type Link struct {
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]*`
 
 var links = []Link{
+	{Method: "GET", Fn: handler.PrivacyPolicy, Pattern: MustCompile(`^_privacy$`)},
+	{Method: "GET", Fn: handler.TermsOfService, Pattern: MustCompile(`^_toc$`)},
+
 	// Projects API
 	{Method: "GET", Fn: handler.ListProjects, Pattern: MustCompile(`^_$`)},
 	{Method: "GET", Fn: handler.GetProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
