@@ -1,27 +1,22 @@
-package handler
+package main
 
 import (
-	"fmt"
-	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"io/ioutil"
 	"net/http"
 )
 
-func PrivacyPolicy(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
-	filename := "privacy.html"
-	return returnFileContent(filename)
-}
+func HandleFile(path string) (*backend.CallResourceResponse, error) {
 
-func TermsOfService(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
-	filename := "tos.html"
+	filename := "/var/lib/grafana/plugins/sensetif-datasource/" + path
 	return returnFileContent(filename)
 }
 
 func returnFileContent(filename string) (*backend.CallResourceResponse, error) {
 	policy, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fmt.Println("File reading error", err)
+		log.DefaultLogger.Error("File reading error: " + err.Error())
 		return &backend.CallResourceResponse{
 			Status:  http.StatusNotFound,
 			Headers: make(map[string][]string),

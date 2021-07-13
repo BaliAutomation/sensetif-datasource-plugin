@@ -29,9 +29,6 @@ type Link struct {
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]*`
 
 var links = []Link{
-	{Method: "GET", Fn: handler.PrivacyPolicy, Pattern: MustCompile(`^_privacy$`)},
-	{Method: "GET", Fn: handler.TermsOfService, Pattern: MustCompile(`^_toc$`)},
-
 	// Projects API
 	{Method: "GET", Fn: handler.ListProjects, Pattern: MustCompile(`^_$`)},
 	{Method: "GET", Fn: handler.GetProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
@@ -56,6 +53,13 @@ var links = []Link{
 
 //goland:noinspection GoUnusedParameter
 func (p ResourceHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+	if strings.IndexAny(request.Path, "__/") == 0 {
+		content, err := HandleFile(strings.TrimLeft(request.Path, "__/"))
+		if err = sender.Send(content); err != nil {
+			log.DefaultLogger.Error("could not write content to the client. " + err.Error())
+			return err
+		}
+	}
 	orgId, err := getOrgId(request)
 	if err != nil {
 		if sendErr := sender.Send(&backend.CallResourceResponse{
@@ -63,7 +67,7 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 			Headers: make(map[string][]string),
 			Body:    []byte("Header X-Grafana-Org-Id is missing."),
 		}); sendErr != nil {
-			log.DefaultLogger.Error("could not write response to the client")
+			log.DefaultLogger.Error("could not write response to the client." + err.Error())
 			return sendErr
 		}
 	}
@@ -77,7 +81,7 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 				result, err := link.Fn(orgId, parameters, request.Body, p.kafka, p.cassandra)
 				if err == nil {
 					if sendErr := sender.Send(result); sendErr != nil {
-						log.DefaultLogger.Error("could not write response to the client")
+						log.DefaultLogger.Error("could not write response to the client. " + sendErr.Error())
 						return sendErr
 					}
 					return nil
