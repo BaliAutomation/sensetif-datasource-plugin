@@ -9,7 +9,6 @@ import (
 )
 
 func HandleFile(path string) (*backend.CallResourceResponse, error) {
-
 	if strings.Contains(path, "..") {
 		return &backend.CallResourceResponse{
 			Status:  http.StatusNotFound,

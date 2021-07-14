@@ -92,6 +92,7 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 
 func handleFileRequests(request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) (error, bool) {
 	if strings.IndexAny(request.Path, "__/") == 0 {
+		log.DefaultLogger.Info(fmt.Sprintf("Path: [%s]", request.Path))
 		filename := strings.TrimLeft(request.Path, "__/")
 		content, err := HandleFile(filename)
 		if err != nil {
