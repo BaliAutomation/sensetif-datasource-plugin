@@ -54,12 +54,12 @@ func GetDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka,
 func UpdateDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
 	kafka.Send(model.ConfigurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
 	if util.IsDevelopmentMode() {
-		var datapoint model.DatapointSettings
+		var datapoint model.Datapoint
 		if err := json.Unmarshal(body, &datapoint); err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal datapoint. error: %v", err))
 			return nil, fmt.Errorf("%w: invalid subsystem json", model.ErrBadRequest)
 		}
-		if err := cassandra.UpsertDatapoint(orgId, &datapoint); err != nil {
+		if err := cassandra.UpsertDatapoint(orgId, datapoint); err != nil {
 			return nil, err
 		}
 	}

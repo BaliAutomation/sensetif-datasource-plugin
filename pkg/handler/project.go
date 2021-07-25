@@ -51,7 +51,7 @@ func UpdateProject(orgId int64, params []string, body []byte, kafka client.Kafka
 			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal project; err: %v", err))
 			return nil, fmt.Errorf("%w: invalid project json", model.ErrBadRequest)
 		}
-		if err := cassandra.UpsertProject(orgId, &project); err != nil {
+		if err := cassandra.UpsertProject(orgId, project); err != nil {
 			return nil, err
 		}
 	}

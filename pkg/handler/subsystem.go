@@ -61,7 +61,7 @@ func UpdateSubsystem(orgId int64, params []string, body []byte, kafka client.Kaf
 			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal subsystem; err: %v", err))
 			return nil, fmt.Errorf("%w: invalid subsystem json", model.ErrBadRequest)
 		}
-		if err := cassandra.UpsertSubsystem(orgId, &subsystem); err != nil {
+		if err := cassandra.UpsertSubsystem(orgId, subsystem); err != nil {
 			return nil, err
 		}
 	}

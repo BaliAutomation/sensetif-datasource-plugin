@@ -16,7 +16,7 @@ type KafkaClient struct {
 	p *kafka.Producer
 }
 
-func (kaf *KafkaClient) Send(topic string, key string, value []byte) {
+func (kaf KafkaClient) Send(topic string, key string, value []byte) {
 	delivery_chan := make(chan kafka.Event, 10000)
 	t := topic
 	err := kaf.p.Produce(&kafka.Message{
@@ -35,7 +35,7 @@ func (kaf *KafkaClient) Send(topic string, key string, value []byte) {
 	}
 }
 
-func (kaf *KafkaClient) InitializeKafka(hosts []string, clientId string) {
+func (kaf KafkaClient) InitializeKafka(hosts []string, clientId string) {
 	var err error
 	config := kafka.ConfigMap{
 		"bootstrap.servers":  strings.Join(hosts, ","),

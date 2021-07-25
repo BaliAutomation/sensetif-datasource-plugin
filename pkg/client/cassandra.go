@@ -13,17 +13,17 @@ import (
 
 type Cassandra interface {
 	QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValue int) []model.TsPair
-	GetProject(orgId int64, name string) *model.ProjectSettings
+	GetProject(orgId int64, name string) model.ProjectSettings
 
-	UpsertProject(orgId int64, project *model.ProjectSettings) error
-	UpsertSubsystem(orgId int64, project *model.SubsystemSettings) error
-	UpsertDatapoint(orgId int64, datapoint *model.DatapointSettings) error
+	UpsertProject(orgId int64, project model.ProjectSettings) error
+	UpsertSubsystem(orgId int64, project model.SubsystemSettings) error
+	UpsertDatapoint(orgId int64, datapoint model.Datapoint) error
 
 	FindAllProjects(org int64) []model.ProjectSettings
-	GetSubsystem(org int64, projectName string, subsystem string) *model.SubsystemSettings
+	GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings
 	FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings
-	GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) *model.DatapointSettings
-	FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings
+	GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.Datapoint
+	FindAllDatapoints(org int64, projectName string, subsystemName string) []model.Datapoint
 
 	Shutdown()
 	Reinitialize()
@@ -38,7 +38,7 @@ type CassandraClient struct {
 	ctx           context.Context
 }
 
-func (cass *CassandraClient) InitializeCassandra(hosts []string) {
+func (cass CassandraClient) InitializeCassandra(hosts []string) {
 	log.DefaultLogger.Info("Initialize Cassandra client: " + hosts[0])
 	cass.clusterConfig = gocql.NewCluster()
 	cass.clusterConfig.Hosts = hosts
@@ -51,11 +51,11 @@ func (cass *CassandraClient) InitializeCassandra(hosts []string) {
 	cass.Reinitialize()
 }
 
-func (cass *CassandraClient) IsHealthy() bool {
+func (cass CassandraClient) IsHealthy() bool {
 	return !cass.session.Closed()
 }
 
-func (cass *CassandraClient) Reinitialize() {
+func (cass CassandraClient) Reinitialize() {
 	log.DefaultLogger.Info("Re-initialize Cassandra session: " + fmt.Sprintf("%+v", cass.session))
 	if cass.session != nil {
 		cass.session.Close()
@@ -68,7 +68,7 @@ func (cass *CassandraClient) Reinitialize() {
 	log.DefaultLogger.Info("Cassandra session: " + fmt.Sprintf("%+v", cass.session))
 }
 
-func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
+func (cass CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
 	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
 	var result []model.TsPair
 	startYearMonth := from.Year()*12 + int(from.Month()) - 1
@@ -115,7 +115,7 @@ func reduceSize(maxValues int, result []model.TsPair) []model.TsPair {
 	return result
 }
 
-func (cass *CassandraClient) GetProject(orgId int64, name string) *model.ProjectSettings {
+func (cass CassandraClient) GetProject(orgId int64, name string) model.ProjectSettings {
 	log.DefaultLogger.Info("getProject:  " + strconv.FormatInt(orgId, 10) + "/" + name)
 	scanner := cass.session.
 		Query(fmt.Sprintf(projectQuery, cass.clusterConfig.Keyspace, projectsTablename), orgId, name).
@@ -127,28 +127,52 @@ func (cass *CassandraClient) GetProject(orgId int64, name string) *model.Project
 		if err != nil {
 			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
 		}
-		return &rowValue
+		return rowValue
 	}
-	return nil
+	return model.ProjectSettings{}
 }
 
-func (cass *CassandraClient) UpsertProject(orgId int64, project *model.ProjectSettings) error {
+func (cass CassandraClient) UpsertProject(orgId int64, project model.ProjectSettings) error {
 	log.DefaultLogger.Info("addProject:  " + strconv.FormatInt(orgId, 10) + "/" + project.Name)
 	return cass.session.Query(projectsInsert, orgId, project.Name, project.Title, project.City, project.Country, project.Timezone, project.Geolocation).Exec()
 }
 
-func (cass *CassandraClient) UpsertSubsystem(orgId int64, subsystem *model.SubsystemSettings) error {
+func (cass CassandraClient) UpsertSubsystem(orgId int64, subsystem model.SubsystemSettings) error {
 	log.DefaultLogger.Info("addSubsystem:  " + strconv.FormatInt(orgId, 10) + "/" + subsystem.Name)
 	return cass.session.Query(subsystemInsert, orgId, subsystem.Name, subsystem.Title, subsystem.Locallocation, time.Now(), subsystem.Project).Exec()
 }
 
-func (cass *CassandraClient) UpsertDatapoint(orgId int64, d *model.DatapointSettings) error {
-	log.DefaultLogger.Info("addDatapoint:  " + strconv.FormatInt(orgId, 10) + "/" + d.Name)
-	return cass.session.Query(datapointInsert, orgId, d.Project, d.Subsystem, d.Name, time.Now(), d.Interval, d.URL, d.Format,
-		d.AuthenticationType, d.Auth, d.ValueExpression, d.Unit, d.TimestampExpression, d.TimestampType, d.TimeToLive, d.Scaling, d.K, d.M).Exec()
+func (cass CassandraClient) UpsertDatapoint(orgId int64, datapoint model.Datapoint) error {
+	log.DefaultLogger.Info("addDatapoint:  " + strconv.FormatInt(orgId, 10) + "/" + (datapoint).Name())
+	sourceType := (datapoint).SourceType()
+	switch sourceType {
+	case model.Raw:
+		d := (datapoint).(model.WebDocument)
+		datasource := make(map[string]string)
+		datasource["url"] = d.URL
+		datasource["authtype"] = strconv.Itoa(int(d.AuthenticationType))
+		datasource["auth"] = d.Auth
+		datasource["docformat"] = strconv.Itoa(int(d.Format))
+		datasource["valueexpression"] = d.ValueExpression
+		datasource["timestamptype"] = strconv.Itoa(int(d.TimestampType))
+		datasource["timeexpression"] = d.TimestampExpression
+		// (orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m)
+		return cass.session.Query(datapointInsert, orgId, d.Project, d.Subsystem, d.Name, time.Now(), d.Interval, sourceType, datasource, d.Unit, d.TimeToLive, d.Scaling, d.K, d.M).Exec()
+	case model.Ttnv3:
+		d := (datapoint).(model.Ttnv3Document)
+		datasource := make(map[string]string)
+		datasource["zone"] = d.Zone
+		datasource["application"] = d.Application
+		datasource["device"] = d.Device
+		datasource["pointname"] = d.PointName
+		datasource["authorizationKey"] = d.AuthorizationKey
+		// (orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m)
+		return cass.session.Query(datapointInsert, orgId, d.Project, d.Subsystem, d.Name, time.Now(), d.Interval, sourceType, datasource, d.Unit, d.TimeToLive, d.Scaling, d.K, d.M).Exec()
+	}
+	return nil
 }
 
-func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
+func (cass CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
 	log.DefaultLogger.Info("findAllProjects:  " + strconv.FormatInt(org, 10))
 	result := make([]model.ProjectSettings, 0)
 	scanner := cass.session.
@@ -167,7 +191,7 @@ func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings 
 	return result
 }
 
-func (cass *CassandraClient) GetSubsystem(org int64, projectName string, subsystem string) *model.SubsystemSettings {
+func (cass CassandraClient) GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings {
 	log.DefaultLogger.Info("getSubsystem:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystem)
 	scanner := cass.session.
 		Query(fmt.Sprintf(subsystemQuery, cass.clusterConfig.Keyspace, subsystemsTablename), org, projectName, subsystem).
@@ -180,12 +204,12 @@ func (cass *CassandraClient) GetSubsystem(org int64, projectName string, subsyst
 		if err != nil {
 			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
 		}
-		return &rowValue
+		return rowValue
 	}
-	return nil
+	return model.SubsystemSettings{}
 }
 
-func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings {
+func (cass CassandraClient) FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings {
 	log.DefaultLogger.Info("findAllSubsystems:  " + strconv.FormatInt(org, 10) + "/" + projectName)
 	result := make([]model.SubsystemSettings, 0)
 	scanner := cass.session.
@@ -205,55 +229,95 @@ func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []
 	return result
 }
 
-func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) *model.DatapointSettings {
+func (cass CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.Datapoint {
 	log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
 	scanner := cass.session.
 		Query(fmt.Sprintf(datapointQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName, datapoint).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var r model.DatapointSettings
-		r.Project = projectName
-		r.Project = subsystemName
-		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Auth,
-			&r.ValueExpression, &r.Unit, &r.TimestampExpression, &r.TimestampType, &r.TimeToLive, &r.Scaling, &r.K, &r.M)
-		if err != nil {
-			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
-		}
-		return &r
+		return cass.deserializeRow(scanner)
 	}
 	return nil
 }
 
-func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings {
+func (cass CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoint {
+	var sourceType model.SourceType
+	err := scanner.Scan(&sourceType)
+	if err == nil {
+
+		switch sourceType {
+		case model.Raw:
+			var r model.WebDocument
+			var properties = make(map[string]string)
+			// (orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m)
+			err = scanner.Scan(&r.Project_, &r.Subsystem_, &r.Name_, &r.Interval_, &r.SourceType_, &properties, &r.Unit_, &r.TimeToLive, &r.Scaling, &r.K, &r.M)
+			if err == nil {
+				r.URL = properties["url"]
+
+				var value, err = strconv.Atoi(properties["authtype"])
+				if err != nil {
+					break
+				}
+				r.AuthenticationType = model.AuthenticationType(value)
+				r.Auth = properties["auth"]
+				value, err = strconv.Atoi(properties["docformat"])
+				if err != nil {
+					break
+				}
+				r.Format = model.OriginDocumentFormat(value)
+				r.ValueExpression = properties["valueexpression"]
+				value, err = strconv.Atoi(properties["timestamptype"])
+				if err != nil {
+					break
+				}
+				r.TimestampType = model.TimestampType(value)
+				r.TimestampExpression = properties["timeexpression"]
+			}
+			return r
+		case model.Ttnv3:
+			var t model.Ttnv3Document
+			var properties = make(map[string]string)
+			// (orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m)
+			err = scanner.Scan(&t.Project_, &t.Subsystem_, &t.Name_, &t.Interval_, &t.SourceType_, &properties, &t.Unit_, &t.TimeToLive, &t.Scaling, &t.K, &t.M)
+			if err == nil {
+				t.Zone = properties["zone"]
+				t.Application = properties["application"]
+				t.Device = properties["device"]
+				t.PointName = properties["pointname"]
+				t.AuthorizationKey = properties["authorizationKey"]
+			}
+			return t
+		}
+	}
+	if err != nil {
+		log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+	}
+	return nil
+}
+
+func (cass CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.Datapoint {
 	log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
-	result := make([]model.DatapointSettings, 0)
+	result := make([]model.Datapoint, 0)
 	query := fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename)
 	scanner := cass.session.
 		Query(query, org, projectName, subsystemName).
 		Iter().
 		Scanner()
 	for scanner.Next() {
-		var r model.DatapointSettings
-		r.Project = projectName
-		r.Project = subsystemName
-		err := scanner.Scan(&r.Name, &r.Interval, &r.URL, &r.Format, &r.AuthenticationType, &r.Auth,
-			&r.ValueExpression, &r.Unit, &r.TimestampExpression, &r.TimestampType, &r.TimeToLive, &r.Scaling, &r.K, &r.M)
-		if err != nil {
-			log.DefaultLogger.Error("Internal Error? Failed to read record: " + err.Error())
-		}
-		result = append(result, r)
+		datapoint := cass.deserializeRow(scanner)
+		result = append(result, datapoint)
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("Found: %d datapoints", len(result)))
 	return result
 }
 
-func (cass *CassandraClient) Shutdown() {
+func (cass CassandraClient) Shutdown() {
 	log.DefaultLogger.Info("Shutdown Cassandra client")
 	cass.session.Close()
 }
 
-func (cass *CassandraClient) Err() error {
+func (cass CassandraClient) Err() error {
 	return cass.err
 }
 
@@ -262,8 +326,8 @@ const projectsTablename = "projects"
 const projectsInsert = "INSERT into projects (orgid,name,title,city,country,timezone,geolocation) values (?, ?, ?, ?, ?, ?, ?);"
 const subsystemInsert = "INSERT into subsystems (orgid,name,title,location,ts,project) values (?, ?, ?, ?, ?, ?);"
 
-const datapointInsert = "INSERT INTO datapoints (orgid,project,subsystem,name,ts,pollinterval,url,docformat,authtype,auth,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m)" +
-	"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+const datapointInsert = "INSERT INTO %s.%s (orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m)" +
+	" VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);"
 
 const projectQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ? AND name = ?;"
 
@@ -277,9 +341,9 @@ const subsystemsQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? A
 
 const datapointsTablename = "datapoints"
 
-const datapointQuery = "SELECT name,pollinterval,url,docformat,authtype,auth,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
+const datapointQuery = "SELECT orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
 
-const datapointsQuery = "SELECT name,pollinterval,url,docformat,authtype,auth,valueexpression,unit,timeexpression,timestamptype,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
+const datapointsQuery = "SELECT orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const timeseriesTablename = "timeseries"
 
