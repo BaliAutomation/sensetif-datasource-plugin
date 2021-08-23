@@ -146,7 +146,7 @@ func (cass CassandraClient) UpsertDatapoint(orgId int64, datapoint model.Datapoi
 	log.DefaultLogger.Info("addDatapoint:  " + strconv.FormatInt(orgId, 10) + "/" + (datapoint).Name())
 	sourceType := (datapoint).SourceType()
 	switch sourceType {
-	case model.Raw:
+	case model.Web:
 		d := (datapoint).(model.WebDocument)
 		datasource := make(map[string]string)
 		datasource["url"] = d.URL
@@ -247,7 +247,7 @@ func (cass CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoin
 	if err == nil {
 
 		switch sourceType {
-		case model.Raw:
+		case model.Web:
 			var r model.WebDocument
 			var properties = make(map[string]string)
 			// (orgid,project,subsystem,name,ts,pollinterval,datasourcetype,datasource,unit,timetolive,scaling,k,m)

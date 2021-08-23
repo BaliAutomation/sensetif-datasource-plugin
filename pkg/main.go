@@ -27,7 +27,7 @@ func startServing(ds SensetifDatasource, resourceHandler backend.CallResourceHan
 	serveOpts := datasource.ServeOpts{
 		CallResourceHandler: resourceHandler,
 		QueryDataHandler:    &ds,
-		CheckHealthHandler:  &ds,
+		//CheckHealthHandler:  &ds,
 	}
 
 	err := datasource.Serve(serveOpts)

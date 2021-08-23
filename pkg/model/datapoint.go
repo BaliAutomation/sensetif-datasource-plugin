@@ -52,7 +52,7 @@ type WebDocument struct {
 }
 
 func (w WebDocument) SourceType() SourceType {
-	return Raw
+	return Web
 }
 
 func (w WebDocument) Project() string {
@@ -98,9 +98,9 @@ func (t Ttnv3Document) Interval() PollInterval {
 	return t.Interval_
 }
 
-type SourceType int
+type SourceType string
 
 const (
-	Raw   SourceType = 0 // Web documents
-	Ttnv3 SourceType = 1 // The Things Network v3
+	Web   SourceType = "web" 	// Web documents
+	Ttnv3 SourceType = "ttnv3" 	// The Things Network v3
 )

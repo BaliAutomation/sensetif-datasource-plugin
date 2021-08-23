@@ -13,16 +13,18 @@
   "author": "Niclas Hedhman",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@grafana/toolkit": "^8.0.1",
-    "@grafana/data": "^8.0.1",
-    "@grafana/runtime": "^8.0.1",
-    "@grafana/ui": "^8.0.1",
-    "@types/lodash": "^4.14.168"
+    "@grafana/toolkit": "^8.1.2",
+    "@grafana/data": "^8.1.2",
+    "@grafana/runtime": "^8.1.2",
+    "@grafana/ui": "^8.1.2",
+    "@types/lodash": "^4.14.172"
   },
   "resolutions": {
-    "rxjs": "6.6.3"
+    "rxjs": "7.3.0"
   },
   "engines": {
     "node": ">=14"
+  },
+  "jest": {
   }
 }
