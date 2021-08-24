@@ -51,56 +51,56 @@ type WebDocument struct {
 	TimestampExpression string               `json:"timestampExpression"` // if format==xml, then xpath. if format==json, then jsonpath.
 }
 
-func (w WebDocument) SourceType() SourceType {
+func (w *WebDocument) SourceType() SourceType {
 	return Web
 }
 
-func (w WebDocument) Project() string {
+func (w *WebDocument) Project() string {
 	return w.Project_
 }
 
-func (w WebDocument) Subsystem() string {
+func (w *WebDocument) Subsystem() string {
 	return w.Subsystem_
 }
 
-func (w WebDocument) Name() string {
+func (w *WebDocument) Name() string {
 	return w.Name_
 }
 
-func (w WebDocument) Unit() string {
+func (w *WebDocument) Unit() string {
 	return w.Unit_
 }
 
-func (w WebDocument) Interval() PollInterval {
+func (w *WebDocument) Interval() PollInterval {
 	return w.Interval_
 }
 
-func (t Ttnv3Document) SourceType() SourceType {
+func (t *Ttnv3Document) SourceType() SourceType {
 	return Ttnv3
 }
 
-func (t Ttnv3Document) Project() string {
+func (t *Ttnv3Document) Project() string {
 	return t.Project_
 }
 
-func (t Ttnv3Document) Subsystem() string {
+func (t *Ttnv3Document) Subsystem() string {
 	return t.Subsystem_
 }
 
-func (t Ttnv3Document) Name() string {
+func (t *Ttnv3Document) Name() string {
 	return t.Name_
 }
 
-func (t Ttnv3Document) Unit() string {
+func (t *Ttnv3Document) Unit() string {
 	return t.Unit_
 }
-func (t Ttnv3Document) Interval() PollInterval {
+func (t *Ttnv3Document) Interval() PollInterval {
 	return t.Interval_
 }
 
 type SourceType string
 
 const (
-	Web   SourceType = "web" 	// Web documents
-	Ttnv3 SourceType = "ttnv3" 	// The Things Network v3
+	Web   SourceType = "web"   // Web documents
+	Ttnv3 SourceType = "ttnv3" // The Things Network v3
 )
