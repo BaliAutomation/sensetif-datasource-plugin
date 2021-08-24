@@ -38,25 +38,25 @@ type CassandraClient struct {
 	ctx           context.Context
 }
 
-func (cass CassandraClient) InitializeCassandra(hosts []string) {
+func (cass *CassandraClient) InitializeCassandra(hosts []string) {
 	log.DefaultLogger.Info("Initialize Cassandra client: " + hosts[0])
 	cass.clusterConfig = gocql.NewCluster()
+	cass.clusterConfig.Keyspace = "ks_sensetif"
 	cass.clusterConfig.Hosts = hosts
 	cass.clusterConfig.Port = 9042
 	cass.clusterConfig.HostFilter = gocql.HostFilterFunc(func(host *gocql.HostInfo) bool {
 		log.DefaultLogger.Info("Filter: " + host.ConnectAddress().String() + ":" + strconv.Itoa(host.Port()) + " --> " + host.String())
 		return true
 	})
-	cass.clusterConfig.Keyspace = "ks_sensetif"
 	cass.Reinitialize()
 }
 
-func (cass CassandraClient) IsHealthy() bool {
+func (cass *CassandraClient) IsHealthy() bool {
 	return !cass.session.Closed()
 }
 
-func (cass CassandraClient) Reinitialize() {
-	log.DefaultLogger.Info("Re-initialize Cassandra session: " + fmt.Sprintf("%+v", cass.session))
+func (cass *CassandraClient) Reinitialize() {
+	log.DefaultLogger.Info("Re-initialize Cassandra session: " + fmt.Sprintf("%+v", cass.session) + "," + fmt.Sprintf("%+v", cass.clusterConfig))
 	if cass.session != nil {
 		cass.session.Close()
 	}
@@ -68,7 +68,7 @@ func (cass CassandraClient) Reinitialize() {
 	log.DefaultLogger.Info("Cassandra session: " + fmt.Sprintf("%+v", cass.session))
 }
 
-func (cass CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
+func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
 	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
 	var result []model.TsPair
 	startYearMonth := from.Year()*12 + int(from.Month()) - 1
@@ -115,7 +115,7 @@ func reduceSize(maxValues int, result []model.TsPair) []model.TsPair {
 	return result
 }
 
-func (cass CassandraClient) GetProject(orgId int64, name string) model.ProjectSettings {
+func (cass *CassandraClient) GetProject(orgId int64, name string) model.ProjectSettings {
 	log.DefaultLogger.Info("getProject:  " + strconv.FormatInt(orgId, 10) + "/" + name)
 	scanner := cass.session.
 		Query(fmt.Sprintf(projectQuery, cass.clusterConfig.Keyspace, projectsTablename), orgId, name).
@@ -132,17 +132,17 @@ func (cass CassandraClient) GetProject(orgId int64, name string) model.ProjectSe
 	return model.ProjectSettings{}
 }
 
-func (cass CassandraClient) UpsertProject(orgId int64, project model.ProjectSettings) error {
+func (cass *CassandraClient) UpsertProject(orgId int64, project model.ProjectSettings) error {
 	log.DefaultLogger.Info("addProject:  " + strconv.FormatInt(orgId, 10) + "/" + project.Name)
 	return cass.session.Query(projectsInsert, orgId, project.Name, project.Title, project.City, project.Country, project.Timezone, project.Geolocation).Exec()
 }
 
-func (cass CassandraClient) UpsertSubsystem(orgId int64, subsystem model.SubsystemSettings) error {
+func (cass *CassandraClient) UpsertSubsystem(orgId int64, subsystem model.SubsystemSettings) error {
 	log.DefaultLogger.Info("addSubsystem:  " + strconv.FormatInt(orgId, 10) + "/" + subsystem.Name)
 	return cass.session.Query(subsystemInsert, orgId, subsystem.Name, subsystem.Title, subsystem.Locallocation, time.Now(), subsystem.Project).Exec()
 }
 
-func (cass CassandraClient) UpsertDatapoint(orgId int64, datapoint model.Datapoint) error {
+func (cass *CassandraClient) UpsertDatapoint(orgId int64, datapoint model.Datapoint) error {
 	log.DefaultLogger.Info("addDatapoint:  " + strconv.FormatInt(orgId, 10) + "/" + (datapoint).Name())
 	sourceType := (datapoint).SourceType()
 	switch sourceType {
@@ -172,11 +172,12 @@ func (cass CassandraClient) UpsertDatapoint(orgId int64, datapoint model.Datapoi
 	return nil
 }
 
-func (cass CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
+func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
 	log.DefaultLogger.Info("findAllProjects:  " + strconv.FormatInt(org, 10))
 	result := make([]model.ProjectSettings, 0)
+	query := fmt.Sprintf(projectsQuery, cass.clusterConfig.Keyspace, projectsTablename)
 	scanner := cass.session.
-		Query(fmt.Sprintf(projectsQuery, cass.clusterConfig.Keyspace, projectsTablename), org).
+		Query(query, org).
 		Iter().
 		Scanner()
 	for scanner.Next() {
@@ -191,7 +192,7 @@ func (cass CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
 	return result
 }
 
-func (cass CassandraClient) GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings {
+func (cass *CassandraClient) GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings {
 	log.DefaultLogger.Info("getSubsystem:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystem)
 	scanner := cass.session.
 		Query(fmt.Sprintf(subsystemQuery, cass.clusterConfig.Keyspace, subsystemsTablename), org, projectName, subsystem).
@@ -209,7 +210,7 @@ func (cass CassandraClient) GetSubsystem(org int64, projectName string, subsyste
 	return model.SubsystemSettings{}
 }
 
-func (cass CassandraClient) FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings {
+func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings {
 	log.DefaultLogger.Info("findAllSubsystems:  " + strconv.FormatInt(org, 10) + "/" + projectName)
 	result := make([]model.SubsystemSettings, 0)
 	scanner := cass.session.
@@ -229,7 +230,7 @@ func (cass CassandraClient) FindAllSubsystems(org int64, projectName string) []m
 	return result
 }
 
-func (cass CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.Datapoint {
+func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.Datapoint {
 	log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
 	scanner := cass.session.
 		Query(fmt.Sprintf(datapointQuery, cass.clusterConfig.Keyspace, datapointsTablename), org, projectName, subsystemName, datapoint).
@@ -241,7 +242,7 @@ func (cass CassandraClient) GetDatapoint(org int64, projectName string, subsyste
 	return nil
 }
 
-func (cass CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoint {
+func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoint {
 	var sourceType model.SourceType
 	err := scanner.Scan(&sourceType)
 	if err == nil {
@@ -296,7 +297,7 @@ func (cass CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoin
 	return nil
 }
 
-func (cass CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.Datapoint {
+func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.Datapoint {
 	log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
 	result := make([]model.Datapoint, 0)
 	query := fmt.Sprintf(datapointsQuery, cass.clusterConfig.Keyspace, datapointsTablename)
@@ -312,12 +313,12 @@ func (cass CassandraClient) FindAllDatapoints(org int64, projectName string, sub
 	return result
 }
 
-func (cass CassandraClient) Shutdown() {
+func (cass *CassandraClient) Shutdown() {
 	log.DefaultLogger.Info("Shutdown Cassandra client")
 	cass.session.Close()
 }
 
-func (cass CassandraClient) Err() error {
+func (cass *CassandraClient) Err() error {
 	return cass.err
 }
 

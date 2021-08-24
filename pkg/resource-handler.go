@@ -16,14 +16,14 @@ import (
 )
 
 type ResourceHandler struct {
-	cassandra client.Cassandra
-	kafka     client.Kafka
+	cassandra *client.CassandraClient
+	kafka     *client.KafkaClient
 }
 
 type Link struct {
 	Pattern *Regexp
 	Method  string
-	Fn      func(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error)
+	Fn      func(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error)
 }
 
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]*`
@@ -52,7 +52,7 @@ var links = []Link{
 }
 
 //goland:noinspection GoUnusedParameter
-func (p ResourceHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+func (p *ResourceHandler) CallResource(ctx context.Context, request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s", request.URL, request.Path, request.Method))
 	err2, found := handleFileRequests(request, sender)
 	if found {
@@ -71,11 +71,16 @@ func (p ResourceHandler) CallResource(ctx context.Context, request *backend.Call
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s, OrgId: %d", request.URL, request.Path, request.Method, orgId))
 
-	for _, link := range links {
+	for idx, link := range links {
 		if link.Method == request.Method {
 			parameters := link.Pattern.FindStringSubmatch(request.URL)
 			if len(parameters) >= 1 {
 				log.DefaultLogger.Info(fmt.Sprintf("Parameters: %q --> %s", strings.Join(parameters, ","), string(request.Body)))
+				log.DefaultLogger.Info("Resource Handler: " + fmt.Sprintf("%+v", p))
+				log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", p.kafka))
+				log.DefaultLogger.Info("Cassandra Client: " + fmt.Sprintf("%+v", p.cassandra))
+				log.DefaultLogger.Info("Function: " + strconv.FormatInt(int64(idx), 10))
+
 				result, err := link.Fn(orgId, parameters, request.Body, p.kafka, p.cassandra)
 				if err == nil {
 					if sendErr := sender.Send(result); sendErr != nil {

@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
-
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -15,7 +13,7 @@ import (
 )
 
 //goland:noinspection GoUnusedParameter
-func ListDatapoints(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func ListDatapoints(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
@@ -33,7 +31,7 @@ func ListDatapoints(orgId int64, params []string, body []byte, kafka client.Kafk
 }
 
 //goland:noinspection GoUnusedParameter
-func GetDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func GetDatapoint(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	if len(params) < 4 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
@@ -51,25 +49,15 @@ func GetDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka,
 }
 
 //goland:noinspection GoUnusedParameter
-func UpdateDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func UpdateDatapoint(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	kafka.Send(model.ConfigurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
-	if util.IsDevelopmentMode() {
-		var datapoint model.Datapoint
-		if err := json.Unmarshal(body, &datapoint); err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal datapoint. error: %v", err))
-			return nil, fmt.Errorf("%w: invalid subsystem json", model.ErrBadRequest)
-		}
-		if err := cassandra.UpsertDatapoint(orgId, datapoint); err != nil {
-			return nil, err
-		}
-	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
 }
 
 //goland:noinspection GoUnusedParameter
-func DeleteDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func DeleteDatapoint(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	if len(params) < 4 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
@@ -91,7 +79,7 @@ func DeleteDatapoint(orgId int64, params []string, body []byte, kafka client.Kaf
 }
 
 //goland:noinspection GoUnusedParameter
-func RenameDatapoint(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func RenameDatapoint(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	kafka.Send(model.ConfigurationTopic, "renameDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,

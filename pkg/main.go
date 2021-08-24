@@ -8,26 +8,41 @@ import (
 	"strings"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
 func main() {
 	log.DefaultLogger.Info("Starting Sensetif plugin")
-	hosts, cassandraClient := createCassandraClient()
-	kafkaClient := createKafkaClient()
-	resourceHandler := createResourceHandler(&cassandraClient, kafkaClient)
-	ds := createDatasource(&cassandraClient, hosts)
-	startServing(ds, resourceHandler)
+	log.DefaultLogger.Info("createCassandraClient()")
+	cassandra_hosts := cassandraHosts()
+	cassandraClient := client.CassandraClient{}
+	cassandraClient.InitializeCassandra(cassandra_hosts)
+	log.DefaultLogger.Info("createKafkaClient()")
+	kafka_hosts := kafkaHosts()
+	kafkaClient := client.KafkaClient{}
+	clientId, err := os.Hostname()
+	if err != nil {
+		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
+		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
+	}
+	kafkaClient.InitializeKafka(kafka_hosts, clientId)
+	log.DefaultLogger.Info("createResourceHandler(): " + fmt.Sprintf("%+v", &kafkaClient))
+	resourceHandler := ResourceHandler{
+		cassandra: &cassandraClient,
+		kafka:     &kafkaClient,
+	}
+	ds := createDatasource(&cassandraClient, cassandra_hosts)
+	startServing(ds, &resourceHandler)
 }
 
-func startServing(ds SensetifDatasource, resourceHandler backend.CallResourceHandler) {
+func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler) {
 	log.DefaultLogger.Info("startServing()")
+	log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", resourceHandler.kafka))
 	serveOpts := datasource.ServeOpts{
 		CallResourceHandler: resourceHandler,
 		QueryDataHandler:    &ds,
-		//CheckHealthHandler:  &ds,
+		CheckHealthHandler:  &ds,
 	}
 
 	err := datasource.Serve(serveOpts)
@@ -47,23 +62,6 @@ func createDatasource(cassandraClient *client.CassandraClient, hosts []string) S
 	return ds
 }
 
-func createResourceHandler(cassandraClient *client.CassandraClient, kafkaClient *client.KafkaClient) backend.CallResourceHandler {
-	log.DefaultLogger.Info("createResourceHandler()")
-	resourceHandler := ResourceHandler{
-		cassandra: cassandraClient,
-		kafka:     kafkaClient,
-	}
-	return resourceHandler
-}
-
-func createCassandraClient() ([]string, client.CassandraClient) {
-	log.DefaultLogger.Info("createCassandraClient()")
-	hosts := cassandraHosts()
-	cassandraClient := client.CassandraClient{}
-	cassandraClient.InitializeCassandra(hosts)
-	return hosts, cassandraClient
-}
-
 func cassandraHosts() []string {
 	log.DefaultLogger.Info("cassandraHosts()")
 	if hosts, ok := os.LookupEnv("CASSANDRA_HOSTS"); ok {
@@ -71,19 +69,6 @@ func cassandraHosts() []string {
 		return strings.Split(hosts, ",")
 	}
 	return []string{"192.168.1.42"} // Default at Niclas' lab
-}
-
-func createKafkaClient() *client.KafkaClient {
-	log.DefaultLogger.Info("createCassandraClient()")
-	hosts := kafkaHosts()
-	kafkaClient := client.KafkaClient{}
-	clientId, err := os.Hostname()
-	if err != nil {
-		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
-		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
-	}
-	kafkaClient.InitializeKafka(hosts, clientId)
-	return &kafkaClient
 }
 
 func kafkaHosts() []string {

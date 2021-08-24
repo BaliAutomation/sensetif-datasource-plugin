@@ -13,13 +13,13 @@ type Kafka interface {
 }
 
 type KafkaClient struct {
-	p *kafka.Producer
+	Producer *kafka.Producer
 }
 
-func (kaf KafkaClient) Send(topic string, key string, value []byte) {
+func (kaf *KafkaClient) Send(topic string, key string, value []byte) {
 	delivery_chan := make(chan kafka.Event, 10000)
 	t := topic
-	err := kaf.p.Produce(&kafka.Message{
+	err := kaf.Producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
 			Topic:     &t,
 			Partition: kafka.PartitionAny,
@@ -35,7 +35,7 @@ func (kaf KafkaClient) Send(topic string, key string, value []byte) {
 	}
 }
 
-func (kaf KafkaClient) InitializeKafka(hosts []string, clientId string) {
+func (kaf *KafkaClient) InitializeKafka(hosts []string, clientId string) {
 	var err error
 	config := kafka.ConfigMap{
 		"bootstrap.servers":  strings.Join(hosts, ","),
@@ -43,10 +43,10 @@ func (kaf KafkaClient) InitializeKafka(hosts []string, clientId string) {
 		"acks":               "all",
 		"enable.idempotence": "true",
 	}
-	kaf.p, err = kafka.NewProducer(&config)
+	kaf.Producer, err = kafka.NewProducer(&config)
 	if err != nil {
 		log.DefaultLogger.Error("Failed to create producer: " + err.Error())
 	} else {
-		log.DefaultLogger.Info(fmt.Sprintf("Created Kafka producer: %+v, %+v", config, kaf.p))
+		log.DefaultLogger.Info(fmt.Sprintf("Created Kafka producer: %+v, %+v", config, kaf.Producer))
 	}
 }

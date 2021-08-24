@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/BaliAutomation/sensetif-datasource/pkg/util"
-
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -15,7 +13,7 @@ import (
 )
 
 //goland:noinspection GoUnusedParameter
-func ListSubsystems(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func ListSubsystems(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	if len(params) < 2 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
@@ -34,7 +32,7 @@ func ListSubsystems(orgId int64, params []string, body []byte, kafka client.Kafk
 }
 
 //goland:noinspection GoUnusedParameter
-func GetSubsystem(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func GetSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
@@ -53,25 +51,15 @@ func GetSubsystem(orgId int64, params []string, body []byte, kafka client.Kafka,
 }
 
 //goland:noinspection GoUnusedParameter
-func UpdateSubsystem(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func UpdateSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	kafka.Send(model.ConfigurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
-	if util.IsDevelopmentMode() {
-		var subsystem model.SubsystemSettings
-		if err := json.Unmarshal(body, &subsystem); err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal subsystem; err: %v", err))
-			return nil, fmt.Errorf("%w: invalid subsystem json", model.ErrBadRequest)
-		}
-		if err := cassandra.UpsertSubsystem(orgId, subsystem); err != nil {
-			return nil, err
-		}
-	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
 }
 
 //goland:noinspection GoUnusedParameter
-func DeleteSubsystem(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func DeleteSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
@@ -92,7 +80,7 @@ func DeleteSubsystem(orgId int64, params []string, body []byte, kafka client.Kaf
 }
 
 //goland:noinspection GoUnusedParameter
-func RenameSubsystem(orgId int64, params []string, body []byte, kafka client.Kafka, cassandra client.Cassandra) (*backend.CallResourceResponse, error) {
+func RenameSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
