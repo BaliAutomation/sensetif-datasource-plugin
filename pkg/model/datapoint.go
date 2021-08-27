@@ -1,5 +1,7 @@
 package model
 
+import "github.com/gocql/gocql"
+
 type Datapoint interface {
 	SourceType() SourceType
 	Project() string
@@ -13,19 +15,48 @@ type DatapointSettings struct {
 	Project_    string       `json:"project"`
 	Subsystem_  string       `json:"subsystem"`
 	Name_       string       `json:"name"` // validate regexp [a-z][A-Za-z0-9_.]*
-	Interval_   PollInterval `json:"interval"`
-	Unit_       string       `json:"unit"` // Allow all characters
-	SourceType_ SourceType   `json:"sourcetype"`
-
-	Scaling    Scaling    `json:"scaling"`
-	K          float64    `json:"k"`
-	M          float64    `json:"m"`
-	TimeToLive TimeToLive `json:"timeToLive"`
+	Interval_   PollInterval `json:"pollinterval"`
+	Proc        Processing   `json:"proc"`
+	TimeToLive  TimeToLive   `json:"timeToLive"`
+	SourceType_ SourceType   `json:"datasourcetype"`
+	Datasource  interface{}  `json:"datasource"` // either a Ttnv3Datasource or a WebDatasource depending on SourceType
 }
 
-type Ttnv3Document struct {
-	DatapointSettings
+type Processing struct {
+	Unit_      string  `json:"unit"` // Allow all characters
+	Scaling    Scaling `json:"scaling"`
+	K          float64 `json:"k"`
+	M          float64 `json:"m"`
+	Min        float64 `json:"min"`
+	Max        float64 `json:"max"`
+	Condition_ string  `json:"condition"` // Allow all characters
+	ScaleFunc  string  `json:"scalefunc"` // Allow all characters
+}
 
+func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	switch name {
+	case "unit":
+		return gocql.Unmarshal(info, data, &p.Unit_)
+	case "condition":
+		return gocql.Unmarshal(info, data, &p.Condition_)
+	case "scalefunc":
+		return gocql.Unmarshal(info, data, &p.ScaleFunc)
+	case "scaling":
+		return gocql.Unmarshal(info, data, &p.Scaling)
+	case "k":
+		return gocql.Unmarshal(info, data, &p.K)
+	case "m":
+		return gocql.Unmarshal(info, data, &p.M)
+	case "min":
+		return gocql.Unmarshal(info, data, &p.Min)
+	case "max":
+		return gocql.Unmarshal(info, data, &p.Max)
+	default:
+		return nil
+	}
+}
+
+type Ttnv3Datasource struct {
 	Zone             string `json:"zone"`
 	Application      string `json:"application"`
 	Device           string `json:"device"`
@@ -33,9 +64,24 @@ type Ttnv3Document struct {
 	AuthorizationKey string `json:"authorizationkey"`
 }
 
-type WebDocument struct {
-	DatapointSettings
+func (ds *Ttnv3Datasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	switch name {
+	case "zone":
+		return gocql.Unmarshal(info, data, &ds.Zone)
+	case "application":
+		return gocql.Unmarshal(info, data, &ds.Application)
+	case "device":
+		return gocql.Unmarshal(info, data, &ds.Device)
+	case "pointname":
+		return gocql.Unmarshal(info, data, &ds.PointName)
+	case "authorizationkey":
+		return gocql.Unmarshal(info, data, &ds.AuthorizationKey)
+	default:
+		return nil
+	}
+}
 
+type WebDatasource struct {
 	URL string `json:"url"` // validate URL, incl anchor and query arguments, but disallow user pwd@
 
 	// Authentication is going to need a lot in the future, but for now user/pass is fine
@@ -51,51 +97,25 @@ type WebDocument struct {
 	TimestampExpression string               `json:"timestampExpression"` // if format==xml, then xpath. if format==json, then jsonpath.
 }
 
-func (w *WebDocument) SourceType() SourceType {
-	return Web
-}
-
-func (w *WebDocument) Project() string {
-	return w.Project_
-}
-
-func (w *WebDocument) Subsystem() string {
-	return w.Subsystem_
-}
-
-func (w *WebDocument) Name() string {
-	return w.Name_
-}
-
-func (w *WebDocument) Unit() string {
-	return w.Unit_
-}
-
-func (w *WebDocument) Interval() PollInterval {
-	return w.Interval_
-}
-
-func (t *Ttnv3Document) SourceType() SourceType {
-	return Ttnv3
-}
-
-func (t *Ttnv3Document) Project() string {
-	return t.Project_
-}
-
-func (t *Ttnv3Document) Subsystem() string {
-	return t.Subsystem_
-}
-
-func (t *Ttnv3Document) Name() string {
-	return t.Name_
-}
-
-func (t *Ttnv3Document) Unit() string {
-	return t.Unit_
-}
-func (t *Ttnv3Document) Interval() PollInterval {
-	return t.Interval_
+func (ds *WebDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	switch name {
+	case "url":
+		return gocql.Unmarshal(info, data, &ds.URL)
+	case "authenticationType":
+		return gocql.Unmarshal(info, data, &ds.AuthenticationType)
+	case "auth":
+		return gocql.Unmarshal(info, data, &ds.Auth)
+	case "format":
+		return gocql.Unmarshal(info, data, &ds.Format)
+	case "valueExpression":
+		return gocql.Unmarshal(info, data, &ds.ValueExpression)
+	case "timestampType":
+		return gocql.Unmarshal(info, data, &ds.TimestampType)
+	case "timestampExpression":
+		return gocql.Unmarshal(info, data, &ds.TimestampExpression)
+	default:
+		return nil
+	}
 }
 
 type SourceType string
