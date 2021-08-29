@@ -1,6 +1,8 @@
 package model
 
-import "github.com/gocql/gocql"
+import (
+	"github.com/gocql/gocql"
+)
 
 type Datapoint interface {
 	SourceType() SourceType
@@ -37,10 +39,6 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 	switch name {
 	case "unit":
 		return gocql.Unmarshal(info, data, &p.Unit_)
-	case "condition":
-		return gocql.Unmarshal(info, data, &p.Condition_)
-	case "scalefunc":
-		return gocql.Unmarshal(info, data, &p.ScaleFunc)
 	case "scaling":
 		return gocql.Unmarshal(info, data, &p.Scaling)
 	case "k":
@@ -51,6 +49,10 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 		return gocql.Unmarshal(info, data, &p.Min)
 	case "max":
 		return gocql.Unmarshal(info, data, &p.Max)
+	case "condition":
+		return gocql.Unmarshal(info, data, &p.Condition_)
+	case "scalefunc":
+		return gocql.Unmarshal(info, data, &p.ScaleFunc)
 	default:
 		return nil
 	}

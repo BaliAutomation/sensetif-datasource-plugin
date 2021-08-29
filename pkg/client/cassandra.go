@@ -15,10 +15,10 @@ type Cassandra interface {
 	QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValue int) []model.TsPair
 	FindAllProjects(org int64) []model.ProjectSettings
 	FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings
-	FindAllDatapoints(org int64, projectName string, subsystemName string) []model.Datapoint
+	FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings
 	GetProject(orgId int64, name string) model.ProjectSettings
 	GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings
-	GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.Datapoint
+	GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.DatapointSettings
 
 	Shutdown()
 	Reinitialize()
@@ -146,18 +146,18 @@ func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []
 	return result
 }
 
-func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.Datapoint {
+func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.DatapointSettings {
 	log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
 	scanner := cass.createQuery(datapointsTablename, datapointQuery, org, projectName, subsystemName, datapoint)
 	for scanner.Next() {
 		return cass.deserializeRow(scanner)
 	}
-	return nil
+	return model.DatapointSettings{}
 }
 
-func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.Datapoint {
+func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings {
 	log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
-	result := make([]model.Datapoint, 0)
+	result := make([]model.DatapointSettings, 0)
 	scanner := cass.createQuery(datapointsTablename, datapointsQuery, org, projectName, subsystemName)
 	for scanner.Next() {
 		datapoint := cass.deserializeRow(scanner)
@@ -183,12 +183,12 @@ func (cass *CassandraClient) createQuery(tableName string, query string, args ..
 	return q.Iter().Scanner()
 }
 
-func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoint {
+func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.DatapointSettings {
 	var r model.DatapointSettings
 	// project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web
 	var ttnv3 model.Ttnv3Datasource
 	var web model.WebDatasource
-	err := scanner.Scan(&r.Project_, &r.Subsystem_, &r.Name_, &r.Interval_, &r.SourceType_, &r.TimeToLive, &r.Proc, ttnv3, web)
+	err := scanner.Scan(&r.Project_, &r.Subsystem_, &r.Name_, &r.Interval_, &r.SourceType_, &r.TimeToLive, &r.Proc, &ttnv3, &web)
 	if err == nil {
 		switch r.SourceType_ {
 		case model.Web:
@@ -200,7 +200,7 @@ func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoi
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Internal Error? Failed to read record: %s, %+v", err.Error(), err))
 	}
-	return nil
+	return r
 }
 
 func reduceSize(maxValues int, result []model.TsPair) []model.TsPair {
