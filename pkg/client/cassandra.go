@@ -188,9 +188,9 @@ func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoi
 	// project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web
 	var ttnv3 model.Ttnv3Datasource
 	var web model.WebDatasource
-	err := scanner.Scan(&r.Project_, &r.Subsystem_, &r.Name_, &r.Interval_, &r.SourceType_, &r.TimeToLive, &r.Proc, &ttnv3, &web)
+	err := scanner.Scan(&r.Project, &r.Subsystem, &r.Name, &r.Interval, &r.SourceType, &r.TimeToLive, &r.Proc, &ttnv3, &web)
 	if err == nil {
-		switch r.SourceType_ {
+		switch r.SourceType {
 		case model.Web:
 			r.Datasource = web
 		case model.Ttnv3:

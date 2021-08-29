@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/gocql/gocql"
+	"strconv"
 )
 
 type Datapoint interface {
@@ -14,48 +15,90 @@ type Datapoint interface {
 }
 
 type DatapointSettings struct {
-	Project_    string       `json:"project"`
-	Subsystem_  string       `json:"subsystem"`
-	Name_       string       `json:"name"` // validate regexp [a-z][A-Za-z0-9_.]*
-	Interval_   PollInterval `json:"pollinterval"`
-	Proc        Processing   `json:"proc"`
-	TimeToLive  TimeToLive   `json:"timeToLive"`
-	SourceType_ SourceType   `json:"datasourcetype"`
-	Datasource  interface{}  `json:"datasource"` // either a Ttnv3Datasource or a WebDatasource depending on SourceType
+	Project    string       `json:"project"`
+	Subsystem  string       `json:"subsystem"`
+	Name       string       `json:"name"` // validate regexp [a-z][A-Za-z0-9_.]*
+	Interval   PollInterval `json:"pollinterval"`
+	Proc       Processing   `json:"proc"`
+	TimeToLive TimeToLive   `json:"timeToLive"`
+	SourceType SourceType   `json:"datasourcetype"`
+	Datasource interface{}  `json:"datasource"` // either a Ttnv3Datasource or a WebDatasource depending on SourceType
 }
 
 type Processing struct {
-	Unit_      string  `json:"unit"` // Allow all characters
-	Scaling    Scaling `json:"scaling"`
-	K          float64 `json:"k"`
-	M          float64 `json:"m"`
-	Min        float64 `json:"min"`
-	Max        float64 `json:"max"`
-	Condition_ string  `json:"condition"` // Allow all characters
-	ScaleFunc  string  `json:"scalefunc"` // Allow all characters
+	Unit      string  `json:"unit"` // Allow all characters
+	Scaling   Scaling `json:"scaling"`
+	K         float64 `json:"k"`
+	M         float64 `json:"m"`
+	Min       float64 `json:"min"`
+	Max       float64 `json:"max"`
+	Condition string  `json:"condition"` // Allow all characters
+	ScaleFunc string  `json:"scalefunc"` // Allow all characters
 }
 
 func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	switch name {
 	case "unit":
-		return gocql.Unmarshal(info, data, &p.Unit_)
+		d := string(data)
+		p.Unit = d
 	case "scaling":
-		return gocql.Unmarshal(info, data, &p.Scaling)
+		d := string(data)
+		switch {
+		case d == "lin":
+			p.Scaling = Lin
+		case d == "ln":
+			p.Scaling = Ln
+		case d == "exp":
+			p.Scaling = Exp
+		case d == "rad":
+			p.Scaling = Rad
+		case d == "deg":
+			p.Scaling = Deg
+		case d == "fToC":
+			p.Scaling = FtoC
+		case d == "cToF":
+			p.Scaling = CtoF
+		case d == "kToC":
+			p.Scaling = KtoC
+		case d == "cToK":
+			p.Scaling = CtoK
+		case d == "kToF":
+			p.Scaling = KtoF
+		case d == "fToK":
+			p.Scaling = FtoK
+		}
 	case "k":
-		return gocql.Unmarshal(info, data, &p.K)
+		d := string(data)
+		f, err := strconv.ParseFloat(d, 64)
+		if err == nil {
+			p.K = f
+		}
 	case "m":
-		return gocql.Unmarshal(info, data, &p.M)
+		d := string(data)
+		f, err := strconv.ParseFloat(d, 64)
+		if err == nil {
+			p.M = f
+		}
 	case "min":
-		return gocql.Unmarshal(info, data, &p.Min)
+		d := string(data)
+		f, err := strconv.ParseFloat(d, 64)
+		if err == nil {
+			p.Min = f
+		}
 	case "max":
-		return gocql.Unmarshal(info, data, &p.Max)
+		d := string(data)
+		f, err := strconv.ParseFloat(d, 64)
+		if err == nil {
+			p.Max = f
+		}
 	case "condition":
-		return gocql.Unmarshal(info, data, &p.Condition_)
+		d := string(data)
+		p.Condition = d
 	case "scalefunc":
-		return gocql.Unmarshal(info, data, &p.ScaleFunc)
-	default:
-		return nil
+		d := string(data)
+		p.ScaleFunc = d
 	}
+	return nil
 }
 
 type Ttnv3Datasource struct {
@@ -69,18 +112,17 @@ type Ttnv3Datasource struct {
 func (ds *Ttnv3Datasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	switch name {
 	case "zone":
-		return gocql.Unmarshal(info, data, &ds.Zone)
+		ds.Zone = string(data)
 	case "application":
-		return gocql.Unmarshal(info, data, &ds.Application)
+		ds.Application = string(data)
 	case "device":
-		return gocql.Unmarshal(info, data, &ds.Device)
+		ds.Device = string(data)
 	case "pointname":
-		return gocql.Unmarshal(info, data, &ds.PointName)
+		ds.PointName = string(data)
 	case "authorizationkey":
-		return gocql.Unmarshal(info, data, &ds.AuthorizationKey)
-	default:
-		return nil
+		ds.AuthorizationKey = string(data)
 	}
+	return nil
 }
 
 type WebDatasource struct {
@@ -102,22 +144,47 @@ type WebDatasource struct {
 func (ds *WebDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	switch name {
 	case "url":
-		return gocql.Unmarshal(info, data, &ds.URL)
-	case "authenticationType":
-		return gocql.Unmarshal(info, data, &ds.AuthenticationType)
+		ds.URL = string(data)
+	case "authtype":
+		t := string(data)
+		switch {
+		case t == "none":
+			ds.AuthenticationType = None
+		case t == "basic":
+			ds.AuthenticationType = Basic
+		case t == "bearerToken":
+			ds.AuthenticationType = BearerToken
+		}
 	case "auth":
-		return gocql.Unmarshal(info, data, &ds.Auth)
-	case "format":
-		return gocql.Unmarshal(info, data, &ds.Format)
-	case "valueExpression":
-		return gocql.Unmarshal(info, data, &ds.ValueExpression)
-	case "timestampType":
-		return gocql.Unmarshal(info, data, &ds.TimestampType)
-	case "timestampExpression":
-		return gocql.Unmarshal(info, data, &ds.TimestampExpression)
-	default:
-		return nil
+		ds.Auth = string(data)
+	case "doctype":
+		t := string(data)
+		switch {
+		case t == "jsondoc":
+			ds.Format = JSON
+		case t == "xmldoc":
+			ds.Format = XML
+		}
+	case "dataexpr":
+		ds.ValueExpression = string(data)
+	case "tstype":
+		t := string(data)
+		switch {
+		case t == "polltime":
+			ds.TimestampType = PollTime
+		case t == "epochMillis":
+			ds.TimestampType = EpochMillis
+		case t == "epochSeconds":
+			ds.TimestampType = EpochSeconds
+		case t == "iso8601_zoned":
+			ds.TimestampType = ISO8601_zoned
+		case t == "iso8601_offset":
+			ds.TimestampType = ISO8601_offset
+		}
+	case "tsexpr":
+		ds.TimestampExpression = string(data)
 	}
+	return nil
 }
 
 type SourceType string

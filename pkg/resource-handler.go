@@ -83,6 +83,7 @@ func (p *ResourceHandler) CallResource(ctx context.Context, request *backend.Cal
 
 				result, err := link.Fn(orgId, parameters, request.Body, p.kafka, p.cassandra)
 				if err == nil {
+					log.DefaultLogger.Info(fmt.Sprintf("Result: %s", string(result.Body)))
 					if sendErr := sender.Send(result); sendErr != nil {
 						log.DefaultLogger.Error("could not write response to the client. " + sendErr.Error())
 						return sendErr
