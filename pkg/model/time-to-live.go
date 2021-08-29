@@ -1,15 +1,18 @@
 package model
 
-type TimeToLive int
+type TimeToLive string
 
 // TimeToLive values
 const (
-	A TimeToLive = 0 // 100 days
-	B TimeToLive = 1 // 200 days
-	C TimeToLive = 2 // 400 days
-	D TimeToLive = 3 // 750 days
-	E TimeToLive = 4 // 1100 days
-	F TimeToLive = 5 // 1500 days
-	G TimeToLive = 6 // 1900 days
-	H TimeToLive = 7 // forever
+	a TimeToLive = "a" // 10 days
+	b TimeToLive = "b" // 40 days
+	c TimeToLive = "c" // 100 days
+	d TimeToLive = "d" // 200 days
+	e TimeToLive = "e" // 400 days
+	f TimeToLive = "f" // 750 days
+	g TimeToLive = "g" // 1200 days
+	h TimeToLive = "h" // 1500 days
+	i TimeToLive = "i" // 1900 days
+	j TimeToLive = "j" // 3700 days
+	k TimeToLive = "k" // forever
 )
