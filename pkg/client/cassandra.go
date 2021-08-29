@@ -185,7 +185,7 @@ func (cass *CassandraClient) createQuery(tableName string, query string, args ..
 
 func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoint {
 	var r model.DatapointSettings
-	// project,subsystem,name,pollinterval,datasourcetype,datasource,timetolive,proc,ttnv3,web
+	// project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web
 	var ttnv3 model.Ttnv3Datasource
 	var web model.WebDatasource
 	err := scanner.Scan(&r.Project_, &r.Subsystem_, &r.Name_, &r.Interval_, &r.SourceType_, &r.TimeToLive, &r.Proc, ttnv3, web)
@@ -198,7 +198,7 @@ func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoi
 		}
 	}
 	if err != nil {
-		log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		log.DefaultLogger.Error(fmt.Sprintf("Internal Error? Failed to read record: %s, %+v", err.Error(), err))
 	}
 	return nil
 }
@@ -239,9 +239,9 @@ const subsystemsQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? A
 
 const datapointsTablename = "datapoints"
 
-const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,datasource,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
+const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
 
-const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,datasource,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
+const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const timeseriesTablename = "timeseries"
 
