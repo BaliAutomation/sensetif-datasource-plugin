@@ -1,9 +1,9 @@
 package model
 
-type AuthenticationType int
+type AuthenticationType string
 
 const (
-	None        AuthenticationType = 0
-	Basic       AuthenticationType = 1
-	BearerToken AuthenticationType = 2
+	None        AuthenticationType = "none"
+	Basic       AuthenticationType = "basic"
+	BearerToken AuthenticationType = "bearerToken"
 )

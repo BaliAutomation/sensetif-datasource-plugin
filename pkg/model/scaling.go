@@ -1,40 +1,40 @@
 package model
 
-type Scaling int
+type Scaling string
 
 // Scaling values
 //goland:noinspection GoUnusedConst
 const (
 	// Lin out = k * x + m
-	Lin Scaling = 0
+	Lin Scaling = "lin"
 
 	// Ln out = k * ln(m*x)
-	Ln Scaling = 1
+	Ln Scaling = "ln"
 
 	// Exp out = k * e^(m*x)
-	Exp Scaling = 2
+	Exp Scaling = "exp"
 
 	// Rad Inputs are degrees, to be converted to radians.
-	Rad Scaling = 3
+	Rad Scaling = "rad"
 
 	// Deg Input are radians, to be converted to degrees.
-	Deg Scaling = 4
+	Deg Scaling = "deg"
 
 	// FtoC Input Fahrenheit, output Celsius
-	FtoC Scaling = 5
+	FtoC Scaling = "fToC"
 
 	// CtoF Input Celsius, output Fahrenheit
-	CtoF Scaling = 6
+	CtoF Scaling = "cToF"
 
 	// KtoC Input Kelvin, output Celsius
-	KtoC Scaling = 7
+	KtoC Scaling = "kToC"
 
 	// CtoK Input Celsius, output Kelvin
-	CtoK Scaling = 8
+	CtoK Scaling = "cToK"
 
 	// FtoK  Input Fahrenheit, output Kelvin
-	FtoK Scaling = 9
+	FtoK Scaling = "fToK"
 
 	// KtoF Input Kelvin, output Fahrenheit
-	KtoF Scaling = 10
+	KtoF Scaling = "kToF"
 )

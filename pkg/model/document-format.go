@@ -1,8 +1,8 @@
 package model
 
-type OriginDocumentFormat int
+type OriginDocumentFormat string
 
 const (
-	JSON OriginDocumentFormat = iota
-	XML
+	JSON OriginDocumentFormat = "jsondoc"
+	XML  OriginDocumentFormat = "xmldoc"
 )
