@@ -167,6 +167,58 @@ func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, su
 	return result
 }
 
+func (cass *CassandraClient) FindAllPlans(orgid int64) []model.PlanSettings {
+	log.DefaultLogger.Info("findAllPlans:  " + strconv.FormatInt(orgid, 10))
+	result := make([]model.PlanSettings, 0)
+	scanner := cass.createQuery(plansTablename, plansQuery)
+	for scanner.Next() {
+		var p model.PlanSettings
+		err := scanner.Scan(&p.Name, &p.Active, &p.Description, &p.End, &p.Limits.MaxCollaborators,
+			&p.Limits.MaxDatapoints, &p.Limits.MaxProjects, &p.Limits.MaxStorage, &p.Limits.MinPollInterval, &p.Private,
+			&p.Start, &p.Title)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		} else {
+			result = append(result, p)
+		}
+	}
+	log.DefaultLogger.Info(fmt.Sprintf("Found: %d plans", len(result)))
+	return result
+}
+func (cass *CassandraClient) FindAllPayments(orgid int64) []model.Payment {
+	log.DefaultLogger.Info("findAllPayments:  " + strconv.FormatInt(orgid, 10))
+	result := make([]model.Payment, 0)
+	scanner := cass.createQuery(paymentsTablename, paymentsQuery)
+	for scanner.Next() {
+		var p model.Payment
+		err := scanner.Scan(&p.InvoiceDate, &p.PaymentDate, &p.Amount, &p.Currency)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		} else {
+			result = append(result, p)
+		}
+	}
+	log.DefaultLogger.Info(fmt.Sprintf("Found: %d payments", len(result)))
+	return result
+}
+
+func (cass *CassandraClient) FindAllInvoices(orgid int64) []model.Invoice {
+	log.DefaultLogger.Info("findAllInvoices:  " + strconv.FormatInt(orgid, 10))
+	result := make([]model.Invoice, 0)
+	scanner := cass.createQuery(invoicesTablename, invoicesQuery)
+	for scanner.Next() {
+		var inv model.Invoice
+		err := scanner.Scan(&inv.InvoiceDate, &inv.PlanTitle, &inv.PlanDescription, &inv.Stats, &inv.Amount, &inv.Currency)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		} else {
+			result = append(result, inv)
+		}
+	}
+	log.DefaultLogger.Info(fmt.Sprintf("Found: %d invoices", len(result)))
+	return result
+}
+
 func (cass *CassandraClient) Shutdown() {
 	log.DefaultLogger.Info("Shutdown Cassandra client")
 	cass.session.Close()
@@ -242,6 +294,15 @@ const datapointsTablename = "datapoints"
 const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
 
 const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
+
+const plansTablename = "plans"
+const plansQuery = "SELECT name,active,created,description,end,maxcollaborators,maxdatapoints,maxprojects,maxstorage,minpollinterval,private,start,title FROM %s.%s;"
+
+const invoicesTablename = "invoices"
+const invoicesQuery = "SELECT invoicedate,plantitle,plandescription,stats,amount,currency FROM %s.%s WHERE orgid = ?;"
+
+const paymentsTablename = "payments"
+const paymentsQuery = "SELECT invoicedate,paymentdate,amount,currency FROM %s.%s WHERE orgid = ?;"
 
 const timeseriesTablename = "timeseries"
 

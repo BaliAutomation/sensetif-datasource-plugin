@@ -49,6 +49,14 @@ var links = []Link{
 	{Method: "PUT", Fn: handler.UpdateDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 	{Method: "DELETE", Fn: handler.DeleteDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 	{Method: "POST", Fn: handler.RenameDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
+
+	// Plans API
+	{Method: "GET", Fn: handler.ListPlans, Pattern: MustCompile(`^_plans$`)},
+
+	// Billing APi
+	{Method: "GET", Fn: handler.ListInvoices, Pattern: MustCompile(`^_invoices`)},
+	{Method: "GET", Fn: handler.ListPayments, Pattern: MustCompile(`^_payments`)},
+	{Method: "POST", Fn: handler.MakePayment, Pattern: MustCompile(`^_payments`)},
 }
 
 //goland:noinspection GoUnusedParameter
