@@ -105,7 +105,7 @@ type Ttnv3Datasource struct {
 	Zone             string `json:"zone"`
 	Application      string `json:"application"`
 	Device           string `json:"device"`
-	PointName        string `json:"pointname"`
+	Point            string `json:"point"`
 	AuthorizationKey string `json:"authorizationkey"`
 }
 
@@ -117,8 +117,8 @@ func (ds *Ttnv3Datasource) UnmarshalUDT(name string, info gocql.TypeInfo, data [
 		ds.Application = string(data)
 	case "device":
 		ds.Device = string(data)
-	case "pointname":
-		ds.PointName = string(data)
+	case "point":
+		ds.Point = string(data)
 	case "authorizationkey":
 		ds.AuthorizationKey = string(data)
 	}
