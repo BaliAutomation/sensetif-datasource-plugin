@@ -7,6 +7,6 @@ type Invoice struct {
 	PlanTitle       string    `json:"plantitle"`
 	PlanDescription string    `json:"plandescription"`
 	Stats           string    `json:"stats"`
-	Amount          float32   `json:"amount"`
+	Amount          float64   `json:"amount"`
 	Currency        string    `json:"currency"`
 }

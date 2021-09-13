@@ -172,14 +172,16 @@ func (cass *CassandraClient) FindAllPlans(orgid int64) []model.PlanSettings {
 	result := make([]model.PlanSettings, 0)
 	scanner := cass.createQuery(plansTablename, plansQuery)
 	for scanner.Next() {
-		var p model.PlanSettings
-		err := scanner.Scan(&p.Name, &p.Active, &p.Description, &p.End, &p.Limits.MaxCollaborators,
-			&p.Limits.MaxDatapoints, &p.Limits.MaxProjects, &p.Limits.MaxStorage, &p.Limits.MinPollInterval, &p.Private,
-			&p.Start, &p.Title)
+		var plan model.PlanSettings
+		err := scanner.Scan(&plan.Name, &plan.Title, &plan.Description, &plan.Price, &plan.Currency,
+			&plan.Current, &plan.Active, &plan.Private,
+			&plan.Start, &plan.End,
+			&plan.Limits.MaxProjects, &plan.Limits.MaxCollaborators, &plan.Limits.MaxDatapoints,
+			&plan.Limits.MaxStorage, &plan.Limits.MinPollInterval)
 		if err != nil {
-			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+			log.DefaultLogger.Error(fmt.Sprintf("Internal Error? Failed to read record: %s", err.Error()))
 		} else {
-			result = append(result, p)
+			result = append(result, plan)
 		}
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("Found: %d plans", len(result)))
@@ -296,7 +298,7 @@ const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetyp
 const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const plansTablename = "plans"
-const plansQuery = "SELECT name,active,created,description,end,maxcollaborators,maxdatapoints,maxprojects,maxstorage,minpollinterval,private,start,title FROM %s.%s;"
+const plansQuery = "SELECT name,title,description,price,currency,current,active,private,start,end,maxprojects,maxcollaborators,maxdatapoints,maxstorage,minpollinterval FROM %s.%s;"
 
 const invoicesTablename = "invoices"
 const invoicesQuery = "SELECT invoicedate,plantitle,plandescription,stats,amount,currency FROM %s.%s WHERE orgid = ?;"

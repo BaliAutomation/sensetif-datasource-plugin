@@ -15,8 +15,11 @@ type PlanSettings struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Private     bool       `json:"private"`
+	Current     bool       `json:"current"`
 	Active      bool       `json:"active"`
 	Limits      PlanLimits `json:"limits"`
 	Start       time.Time  `json:"start"`
 	End         time.Time  `json:"end"`
+	Price       float64    `json:"price"`
+	Currency    string	   `json:"currency"`
 }
