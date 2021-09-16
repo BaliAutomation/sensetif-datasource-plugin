@@ -6,4 +6,5 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.7.0
 	github.com/gocql/gocql v0.0.0-20210425135552-909f2a77f46e // newest version doesn't resolve inside Goland, but does from Make. Weird!
 	github.com/grafana/grafana-plugin-sdk-go v0.105.0
+	github.com/stripe/stripe-go/v72 v72.64.1 // indirect
 )

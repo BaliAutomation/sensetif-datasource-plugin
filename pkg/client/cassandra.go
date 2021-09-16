@@ -16,6 +16,7 @@ type Cassandra interface {
 	FindAllProjects(org int64) []model.ProjectSettings
 	FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings
 	FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings
+	GetOrganization(orgId int64) model.OrganizationSettings
 	GetProject(orgId int64, name string) model.ProjectSettings
 	GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings
 	GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.DatapointSettings
@@ -82,6 +83,22 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 		}
 	}
 	return reduceSize(maxValues, result)
+}
+
+func (cass *CassandraClient) GetOrganization(orgId int64) model.OrganizationSettings {
+	log.DefaultLogger.Info("getOrganization:  " + strconv.FormatInt(orgId, 10))
+	//SELECT name,email,stripecustomer,currentplan,address1,address2,zipcode,city,state,country FROM %s.%s WHERE orgid = ? AND DELETED = '1970-01-01 0:00:00+0:00';"
+	scanner := cass.createQuery(organizationsTablename, organizationQuery, orgId)
+	for scanner.Next() {
+		var org model.OrganizationSettings
+		err := scanner.Scan(&org.Name, &org.Email, &org.StripeCustomer, &org.CurrentPlan,
+			&org.Address.Address1, &org.Address.Address2, &org.Address.ZipCode, &org.Address.City, &org.Address.State, &org.Address.Country)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		}
+		return org
+	}
+	return model.OrganizationSettings{}
 }
 
 func (cass *CassandraClient) GetProject(orgId int64, name string) model.ProjectSettings {
@@ -173,8 +190,8 @@ func (cass *CassandraClient) FindAllPlans(orgid int64) []model.PlanSettings {
 	scanner := cass.createQuery(plansTablename, plansQuery)
 	for scanner.Next() {
 		var plan model.PlanSettings
-		err := scanner.Scan(&plan.Name, &plan.Title, &plan.Description, &plan.Price, &plan.Currency,
-			&plan.Current, &plan.Active, &plan.Private,
+		err := scanner.Scan(&plan.Name, &plan.Title, &plan.Description, &plan.Price, &plan.StripePrice, &plan.Currency,
+			&plan.Active, &plan.Private,
 			&plan.Start, &plan.End,
 			&plan.Limits.MaxProjects, &plan.Limits.MaxCollaborators, &plan.Limits.MaxDatapoints,
 			&plan.Limits.MaxStorage, &plan.Limits.MinPollInterval)
@@ -283,6 +300,10 @@ const projectsTablename = "projects"
 
 const projectQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ? AND name = ?;"
 
+const organizationsTablename = "organizations"
+
+const organizationQuery = "SELECT name,email,stripecustomer,currentplan,address1,address2,zipcode,city,state,country FROM %s.%s WHERE orgid = ? AND DELETED = '1970-01-01 0:00:00+0:00';"
+
 const projectsQuery = "SELECT name,title,city,country,timezone,geolocation FROM %s.%s WHERE orgid = ?;"
 
 const subsystemsTablename = "subsystems"
@@ -298,7 +319,7 @@ const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetyp
 const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
 
 const plansTablename = "plans"
-const plansQuery = "SELECT name,title,description,price,currency,current,active,private,start,end,maxprojects,maxcollaborators,maxdatapoints,maxstorage,minpollinterval FROM %s.%s;"
+const plansQuery = "SELECT name,title,description,price,stripeprice,currency,active,private,start,end,maxprojects,maxcollaborators,maxdatapoints,maxstorage,minpollinterval FROM %s.%s;"
 
 const invoicesTablename = "invoices"
 const invoicesQuery = "SELECT invoicedate,plantitle,plandescription,stats,amount,currency FROM %s.%s WHERE orgid = ?;"
