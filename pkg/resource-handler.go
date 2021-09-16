@@ -55,11 +55,6 @@ var links = []Link{
 
 	// Organizations API
 	{Method: "GET", Fn: handler.GetOrganization, Pattern: MustCompile(`^_organization$`)},
-
-	// Billing APi
-	{Method: "GET", Fn: handler.ListInvoices, Pattern: MustCompile(`^_invoices`)},
-	{Method: "GET", Fn: handler.ListPayments, Pattern: MustCompile(`^_payments`)},
-	{Method: "POST", Fn: handler.MakePayment, Pattern: MustCompile(`^_payments`)},
 }
 
 //goland:noinspection GoUnusedParameter

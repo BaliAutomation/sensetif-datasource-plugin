@@ -204,39 +204,6 @@ func (cass *CassandraClient) FindAllPlans(orgid int64) []model.PlanSettings {
 	log.DefaultLogger.Info(fmt.Sprintf("Found: %d plans", len(result)))
 	return result
 }
-func (cass *CassandraClient) FindAllPayments(orgid int64) []model.Payment {
-	log.DefaultLogger.Info("findAllPayments:  " + strconv.FormatInt(orgid, 10))
-	result := make([]model.Payment, 0)
-	scanner := cass.createQuery(paymentsTablename, paymentsQuery)
-	for scanner.Next() {
-		var p model.Payment
-		err := scanner.Scan(&p.InvoiceDate, &p.PaymentDate, &p.Amount, &p.Currency)
-		if err != nil {
-			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
-		} else {
-			result = append(result, p)
-		}
-	}
-	log.DefaultLogger.Info(fmt.Sprintf("Found: %d payments", len(result)))
-	return result
-}
-
-func (cass *CassandraClient) FindAllInvoices(orgid int64) []model.Invoice {
-	log.DefaultLogger.Info("findAllInvoices:  " + strconv.FormatInt(orgid, 10))
-	result := make([]model.Invoice, 0)
-	scanner := cass.createQuery(invoicesTablename, invoicesQuery)
-	for scanner.Next() {
-		var inv model.Invoice
-		err := scanner.Scan(&inv.InvoiceDate, &inv.PlanTitle, &inv.PlanDescription, &inv.Stats, &inv.Amount, &inv.Currency)
-		if err != nil {
-			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
-		} else {
-			result = append(result, inv)
-		}
-	}
-	log.DefaultLogger.Info(fmt.Sprintf("Found: %d invoices", len(result)))
-	return result
-}
 
 func (cass *CassandraClient) Shutdown() {
 	log.DefaultLogger.Info("Shutdown Cassandra client")
@@ -320,12 +287,6 @@ const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcety
 
 const plansTablename = "plans"
 const plansQuery = "SELECT name,title,description,price,stripeprice,currency,active,private,start,end,maxprojects,maxcollaborators,maxdatapoints,maxstorage,minpollinterval FROM %s.%s;"
-
-const invoicesTablename = "invoices"
-const invoicesQuery = "SELECT invoicedate,plantitle,plandescription,stats,amount,currency FROM %s.%s WHERE orgid = ?;"
-
-const paymentsTablename = "payments"
-const paymentsQuery = "SELECT invoicedate,paymentdate,amount,currency FROM %s.%s WHERE orgid = ?;"
 
 const timeseriesTablename = "timeseries"
 
