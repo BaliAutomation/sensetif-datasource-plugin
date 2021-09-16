@@ -53,6 +53,9 @@ var links = []Link{
 	// Plans API
 	{Method: "GET", Fn: handler.ListPlans, Pattern: MustCompile(`^_plans$`)},
 
+	// Organizations API
+	{Method: "GET", Fn: handler.GetOrganization, Pattern: MustCompile(`^_organization$`)},
+
 	// Billing APi
 	{Method: "GET", Fn: handler.ListInvoices, Pattern: MustCompile(`^_invoices`)},
 	{Method: "GET", Fn: handler.ListPayments, Pattern: MustCompile(`^_payments`)},
