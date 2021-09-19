@@ -19,3 +19,21 @@ const (
 	Weekly          PollInterval = "weekly"
 	Monthly         PollInterval = "monthly"
 )
+
+var (
+	PollIntervals = []PollInterval{One_minute,
+		Five_minutes,
+		Ten_minutes,
+		Fifteen_minutes,
+		Twenty_minutes,
+		Thirty_minutes,
+		One_hour,
+		Two_hours,
+		Three_hours,
+		Six_hours,
+		Twelve_hours,
+		One_day,
+		Weekly,
+		Monthly,
+	}
+)

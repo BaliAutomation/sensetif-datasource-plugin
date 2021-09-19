@@ -32,6 +32,7 @@ func main() {
 		cassandra: &cassandraClient,
 		kafka:     &kafkaClient,
 	}
+
 	ds := createDatasource(&cassandraClient, cassandra_hosts)
 	startServing(ds, &resourceHandler)
 }

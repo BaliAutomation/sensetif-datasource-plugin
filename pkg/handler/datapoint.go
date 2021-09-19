@@ -19,6 +19,9 @@ func ListDatapoints(orgId int64, params []string, body []byte, kafka *client.Kaf
 	}
 
 	datapoints := cassandra.FindAllDatapoints(orgId, params[1], params[2])
+	if len(datapoints) == 0 {
+		setupPlanIfNeeded(orgId)
+	}
 	rawJson, err := json.Marshal(datapoints)
 	if err != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
@@ -28,6 +31,10 @@ func ListDatapoints(orgId int64, params []string, body []byte, kafka *client.Kaf
 		Status: http.StatusOK,
 		Body:   rawJson,
 	}, nil
+}
+
+func setupPlanIfNeeded(orgid int64) {
+
 }
 
 //goland:noinspection GoUnusedParameter

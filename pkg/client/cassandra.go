@@ -91,8 +91,7 @@ func (cass *CassandraClient) GetOrganization(orgId int64) model.OrganizationSett
 	scanner := cass.createQuery(organizationsTablename, organizationQuery, orgId)
 	for scanner.Next() {
 		var org model.OrganizationSettings
-		err := scanner.Scan(&org.Name, &org.Email, &org.StripeCustomer, &org.CurrentPlan,
-			&org.Address.Address1, &org.Address.Address2, &org.Address.ZipCode, &org.Address.City, &org.Address.State, &org.Address.Country)
+		err := scanner.Scan(&org.Name, &org.Email, &org.StripeCustomer, &org.CurrentPlan)
 		if err != nil {
 			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
 		}
@@ -184,27 +183,6 @@ func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, su
 	return result
 }
 
-func (cass *CassandraClient) FindAllPlans(orgid int64) []model.PlanSettings {
-	log.DefaultLogger.Info("findAllPlans:  " + strconv.FormatInt(orgid, 10))
-	result := make([]model.PlanSettings, 0)
-	scanner := cass.createQuery(plansTablename, plansQuery)
-	for scanner.Next() {
-		var plan model.PlanSettings
-		err := scanner.Scan(&plan.Name, &plan.Title, &plan.Description, &plan.Price, &plan.StripePrice, &plan.Currency,
-			&plan.Active, &plan.Private,
-			&plan.Start, &plan.End,
-			&plan.Limits.MaxProjects, &plan.Limits.MaxCollaborators, &plan.Limits.MaxDatapoints,
-			&plan.Limits.MaxStorage, &plan.Limits.MinPollInterval)
-		if err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Internal Error? Failed to read record: %s", err.Error()))
-		} else {
-			result = append(result, plan)
-		}
-	}
-	log.DefaultLogger.Info(fmt.Sprintf("Found: %d plans", len(result)))
-	return result
-}
-
 func (cass *CassandraClient) Shutdown() {
 	log.DefaultLogger.Info("Shutdown Cassandra client")
 	cass.session.Close()
@@ -284,9 +262,6 @@ const datapointsTablename = "datapoints"
 const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ?;"
 
 const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ?;"
-
-const plansTablename = "plans"
-const plansQuery = "SELECT name,title,description,price,stripeprice,currency,active,private,start,end,maxprojects,maxcollaborators,maxdatapoints,maxstorage,minpollinterval FROM %s.%s;"
 
 const timeseriesTablename = "timeseries"
 
