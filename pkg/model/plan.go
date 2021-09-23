@@ -1,5 +1,7 @@
 package model
 
+import "github.com/stripe/stripe-go/v72"
+
 //
 //import "time"
 //
@@ -23,3 +25,8 @@ package model
 //	Price       int64      `json:"price"`
 //	Currency    string     `json:"currency"`
 //}
+
+type PlanSettings struct {
+	Product stripe.Product `json:"product"`
+	Prices  []stripe.Price `json:"prices"`
+}

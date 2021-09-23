@@ -3,14 +3,16 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
+	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"github.com/stripe/stripe-go/v72/price"
 	"github.com/stripe/stripe-go/v72/product"
-	"net/http"
 )
 
 var (
@@ -21,15 +23,29 @@ var (
 //goland:noinspection GoUnusedParameter
 func ListPlans(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("ListPlans()")
-	pricesJson, _ := json.Marshal(Prices)
-	productsJson, _ := json.Marshal(Products)
-	rawJson := "{\"products\":" + string(productsJson) + ",\"prices\":" + string(pricesJson) + "}"
+
+	productPrices := map[string][]stripe.Price{}
+	for _, price := range Prices {
+		productPrices[price.Product.ID] = append(productPrices[price.Product.ID], price)
+	}
+
+	result := []*model.PlanSettings{}
+	for _, product := range Products {
+		result = append(result, &model.PlanSettings{
+			Product: product,
+			Prices:  productPrices[product.ID],
+		})
+	}
+
+	resultJSON, _ := json.Marshal(result)
+
 	return &backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
-		Body:    []byte(rawJson),
+		Body:    resultJSON,
 	}, nil
 }
+
 func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOut()")
 	log.DefaultLogger.Info(fmt.Sprintf("Parameters: %+v", parameters))
