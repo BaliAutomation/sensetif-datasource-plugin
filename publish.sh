@@ -19,7 +19,7 @@ VERSION=`echo "$VERSIONS" | sort -V | tail -1`
 echo $VERSION
 
 rm -rf dist 2>/dev/null
-go build -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
+go build -ldflags "-linkmode external -extldflags -static" -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
 yarn build || exit 1
 mkdir sensetif-datasource
 cp -r dist/* sensetif-datasource
