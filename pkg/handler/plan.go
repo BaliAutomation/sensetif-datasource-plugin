@@ -3,8 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -13,6 +11,8 @@ import (
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"github.com/stripe/stripe-go/v72/price"
 	"github.com/stripe/stripe-go/v72/product"
+	"net/http"
+	"os"
 )
 
 var (
@@ -76,16 +76,20 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 			},
 		},
 	}
+	log.DefaultLogger.Info("Calling Stripe")
 	sess, err := session.New(params)
 	if err != nil {
+		log.DefaultLogger.Error(fmt.Sprintf("Strip error: %+v", err), err)
 		return &backend.CallResourceResponse{
 			Status:  http.StatusBadRequest,
 			Headers: make(map[string][]string),
 			Body:    []byte("{\"message\": \"Unable to establish Stripe session. Please try again later.\"}"),
 		}, nil
 	} else {
+		log.DefaultLogger.Info(fmt.Sprintf("Session: %+v", sess))
 		headers := make(map[string][]string)
 		headers["Location"] = []string{sess.URL}
+		log.DefaultLogger.Info("Redirect browser to: " + sess.URL)
 		return &backend.CallResourceResponse{
 			Status:  http.StatusSeeOther,
 			Headers: headers,
@@ -118,7 +122,10 @@ func CheckOutCancelled(orgId int64, parameters []string, body []byte, kafka *cli
 }
 
 func GetStripeKey() string {
-	// TODO: fetch from /etc/ something
+	if key, ok := os.LookupEnv("STRIPE_KEY"); ok {
+		return key
+	}
+	// If not set in environment, return the key for the Strip Test Mode.
 	return "sk_test_51JZvsFBil9jp3I2LySc7piIiEpXUlDdcxpXdVERSLL10nv2AUM1dfoCjSAZIMJ2XlC8zK1tkxJw85F2KlkBh9mxE00Vne8Kp5Z"
 }
 
