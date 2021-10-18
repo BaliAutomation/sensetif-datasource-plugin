@@ -20,6 +20,10 @@ var (
 	Prices   = LoadPricesFromStripe()
 )
 
+type PlanPricing struct {
+	Price string `json:"price"`
+}
+
 //goland:noinspection GoUnusedParameter
 func ListPlans(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("ListPlans()")
@@ -50,8 +54,12 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 	log.DefaultLogger.Info("CheckOut()")
 	log.DefaultLogger.Info(fmt.Sprintf("Parameters: %+v", parameters))
 	log.DefaultLogger.Info(fmt.Sprintf("Body: %s", string(body)))
+	var pricing PlanPricing
+	err := json.Unmarshal(body, &pricing)
+	if err != nil {
+		return nil, err
+	}
 	stripe.Key = GetStripeKey()
-	priceId := "unknown-for-now"
 	successUrl := "http://localhost:3000/api/plugins/sensetif-datasource/resources/_plans/success?session_id={CHECKOUT_SESSION_ID}"
 	cancelUrl := "http://localhost:3000/api/plugins/sensetif-datasource/resources/_plans/canceled"
 	params := &stripe.CheckoutSessionParams{
@@ -63,7 +71,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 		Mode: stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			&stripe.CheckoutSessionLineItemParams{
-				Price:    stripe.String(priceId),
+				Price:    stripe.String(pricing.Price),
 				Quantity: stripe.Int64(1),
 			},
 		},
