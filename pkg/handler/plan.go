@@ -70,7 +70,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 		}),
 		Mode: stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
-			&stripe.CheckoutSessionLineItemParams{
+			{
 				Price:    stripe.String(pricing.Price),
 				Quantity: stripe.Int64(1),
 			},
@@ -87,13 +87,10 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 		}, nil
 	} else {
 		log.DefaultLogger.Info(fmt.Sprintf("Session: %+v", sess))
-		headers := make(map[string][]string)
-		headers["Location"] = []string{sess.URL}
 		log.DefaultLogger.Info("Redirect browser to: " + sess.URL)
 		return &backend.CallResourceResponse{
-			Status:  http.StatusSeeOther,
-			Headers: headers,
-			Body:    nil,
+			Status: http.StatusOK,
+			Body:   []byte(sess.URL),
 		}, nil
 	}
 }
