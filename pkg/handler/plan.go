@@ -80,7 +80,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 		PaymentMethodTypes: stripe.StringSlice([]string{
 			//"alipay",
 			"card",
-			"ideal",
+			//"ideal",
 			//"fpx",
 			"bacs_debit",
 			"bancontact",
