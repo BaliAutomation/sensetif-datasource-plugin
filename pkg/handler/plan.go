@@ -13,6 +13,7 @@ import (
 	"github.com/stripe/stripe-go/v72/product"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 var (
@@ -22,6 +23,17 @@ var (
 
 type PlanPricing struct {
 	Price string `json:"price"`
+}
+
+type PaymentInfo struct {
+	Customer stripe.Customer `json:"customer"`
+	Price    stripe.Price    `json:"price"`
+	Amount   int64           `json:"amount"`
+	Currency stripe.Currency `json:"currency"`
+}
+
+type SessionProxy struct {
+	Id string `json:"id"`
 }
 
 //goland:noinspection GoUnusedParameter
@@ -60,13 +72,15 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 		return nil, err
 	}
 	stripe.Key = GetStripeKey()
-	successUrl := "http://localhost:3000/api/plugins/sensetif-datasource/resources/_plans/success?session_id={CHECKOUT_SESSION_ID}"
-	cancelUrl := "http://localhost:3000/api/plugins/sensetif-datasource/resources/_plans/canceled"
+	successUrl := "https://sensetif.net/a/sensetif-app?tab=succeeded?session_id={CHECKOUT_SESSION_ID}"
+	cancelUrl := "https://sensetif.net/a/sensetif-app?tab=cancelled?session_id={CHECKOUT_SESSION_ID}"
 	params := &stripe.CheckoutSessionParams{
 		SuccessURL: &successUrl,
 		CancelURL:  &cancelUrl,
 		PaymentMethodTypes: stripe.StringSlice([]string{
 			"card",
+			"klarna",
+			"sofort",
 		}),
 		Mode: stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -94,27 +108,80 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 		}, nil
 	}
 }
+
 func CheckOutSuccess(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOutSuccess()")
-	// TODO: We have received Payment, redirect to THANK YOU page.
-	headers := make(map[string][]string)
-	headers["Location"] = []string{"/a/sensetif-app?tab=plans"}
+
+	var sessionProxy SessionProxy
+	err := json.Unmarshal(body, &sessionProxy)
+	if err != nil {
+		return nil, err
+	}
+
+	params := &stripe.CheckoutSessionParams{}
+	stripeSession, err := session.Get(sessionProxy.Id, params)
+	if err != nil {
+		log.DefaultLogger.Error("Unable to GET checkout session after Success")
+		return &backend.CallResourceResponse{
+			Status: http.StatusInternalServerError,
+			Body:   []byte(fmt.Sprintf("%+v", err)),
+		}, nil
+	}
+	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
+	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
+		var paymentInfo = PaymentInfo{
+			Customer: stripe.Customer{},
+			Amount:   stripeSession.AmountTotal,
+			Currency: stripeSession.Currency,
+		}
+		bytes, err := json.Marshal(paymentInfo)
+		if err == nil {
+			kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+		} else {
+			kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+		}
+	}
 	return &backend.CallResourceResponse{
-		Status:  http.StatusSeeOther,
-		Headers: headers,
-		Body:    nil,
+		Status: http.StatusOK,
+		Body:   nil,
 	}, nil
 }
 
 func CheckOutCancelled(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOutCancelled()")
-	// Checkout was cancelled, just go back to Plans page.
-	headers := make(map[string][]string)
-	headers["Location"] = []string{"/a/sensetif-app?tab=plans"}
+
+	var sessionProxy SessionProxy
+	err := json.Unmarshal(body, &sessionProxy)
+	if err != nil {
+		return nil, err
+	}
+
+	params := &stripe.CheckoutSessionParams{}
+	stripeSession, err := session.Get(sessionProxy.Id, params)
+	if err != nil {
+		log.DefaultLogger.Error("Unable to GET checkout session after CANCEL")
+		return &backend.CallResourceResponse{
+			Status: http.StatusInternalServerError,
+			Body:   []byte(fmt.Sprintf("%+v", err)),
+		}, nil
+	}
+	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
+	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
+		var paymentInfo = PaymentInfo{
+			Customer: stripe.Customer{},
+			Amount:   stripeSession.AmountTotal,
+			Currency: stripeSession.Currency,
+		}
+		bytes, err := json.Marshal(paymentInfo)
+		if err == nil {
+			kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+		} else {
+			kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+		}
+	}
 	return &backend.CallResourceResponse{
-		Status:  http.StatusSeeOther,
-		Headers: headers,
-		Body:    nil,
+		Status: http.StatusOK,
+		Body:   nil,
 	}, nil
 }
 
