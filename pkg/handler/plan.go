@@ -87,7 +87,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 			//"giropay",
 			//"p24",
 			//"eps",
-			"sofort",
+			//"sofort",
 			"sepa_debit",
 			//"grabpay",
 			//"afterpay_clearpay",
