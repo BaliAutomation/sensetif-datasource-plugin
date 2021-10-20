@@ -83,7 +83,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 			//"ideal",
 			//"fpx",
 			"bacs_debit",
-			"bancontact",
+			//"bancontact",
 			"giropay",
 			"p24",
 			"eps",
