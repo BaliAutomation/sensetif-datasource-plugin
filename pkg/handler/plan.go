@@ -72,8 +72,8 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 		return nil, err
 	}
 	stripe.Key = GetStripeKey()
-	successUrl := "https://sensetif.net/a/sensetif-app?tab=succeeded?session_id={CHECKOUT_SESSION_ID}"
-	cancelUrl := "https://sensetif.net/a/sensetif-app?tab=cancelled?session_id={CHECKOUT_SESSION_ID}"
+	successUrl := "https://sensetif.net/a/sensetif-app?tab=succeeded&session_id={CHECKOUT_SESSION_ID}"
+	cancelUrl := "https://sensetif.net/a/sensetif-app?tab=cancelled&session_id={CHECKOUT_SESSION_ID}"
 	params := &stripe.CheckoutSessionParams{
 		SuccessURL: &successUrl,
 		CancelURL:  &cancelUrl,
