@@ -77,6 +77,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 	params := &stripe.CheckoutSessionParams{
 		SuccessURL: &successUrl,
 		CancelURL:  &cancelUrl,
+
 		PaymentMethodTypes: stripe.StringSlice([]string{
 			//"alipay",
 			"card",
