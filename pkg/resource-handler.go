@@ -56,6 +56,9 @@ var links = []Link{
 	{Method: "GET", Fn: handler.CheckOutSuccess, Pattern: MustCompile(`^_checkout/success$`)},
 	{Method: "GET", Fn: handler.CheckOutCancelled, Pattern: MustCompile(`^_checkout/cancelled$`)},
 
+	// Payments API
+	{Method: "GET", Fn: handler.ListPayments, Pattern: MustCompile(`^_payments$`)},
+
 	// Organizations API
 	{Method: "GET", Fn: handler.GetOrganization, Pattern: MustCompile(`^_organization$`)},
 }

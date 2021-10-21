@@ -25,7 +25,7 @@ type PlanPricing struct {
 	Price string `json:"price"`
 }
 
-type PaymentInfo struct {
+type SubscriptionInfo struct {
 	Customer stripe.Customer `json:"customer"`
 	Price    stripe.Price    `json:"price"`
 	Amount   int64           `json:"amount"`
@@ -41,15 +41,15 @@ func ListPlans(orgId int64, parameters []string, body []byte, kafka *client.Kafk
 	log.DefaultLogger.Info("ListPlans()")
 
 	productPrices := map[string][]stripe.Price{}
-	for _, price := range Prices {
-		productPrices[price.Product.ID] = append(productPrices[price.Product.ID], price)
+	for _, prize := range Prices {
+		productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
 	}
 
 	result := []*model.PlanSettings{}
-	for _, product := range Products {
+	for _, prod := range Products {
 		result = append(result, &model.PlanSettings{
-			Product: product,
-			Prices:  productPrices[product.ID],
+			Product: prod,
+			Prices:  productPrices[prod.ID],
 		})
 	}
 
@@ -66,6 +66,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 	log.DefaultLogger.Info("CheckOut()")
 	log.DefaultLogger.Info(fmt.Sprintf("Parameters: %+v", parameters))
 	log.DefaultLogger.Info(fmt.Sprintf("Body: %s", string(body)))
+
 	var pricing PlanPricing
 	err := json.Unmarshal(body, &pricing)
 	if err != nil {
@@ -144,7 +145,7 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, kafka *clien
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
-		var paymentInfo = PaymentInfo{
+		var paymentInfo = SubscriptionInfo{
 			Customer: stripe.Customer{},
 			Amount:   stripeSession.AmountTotal,
 			Currency: stripeSession.Currency,
@@ -182,7 +183,7 @@ func CheckOutCancelled(orgId int64, parameters []string, body []byte, kafka *cli
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
-		var paymentInfo = PaymentInfo{
+		var paymentInfo = SubscriptionInfo{
 			Customer: stripe.Customer{},
 			Amount:   stripeSession.AmountTotal,
 			Currency: stripeSession.Currency,
