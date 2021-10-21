@@ -53,8 +53,8 @@ var links = []Link{
 	// Plans API
 	{Method: "GET", Fn: handler.ListPlans, Pattern: MustCompile(`^_plans$`)},
 	{Method: "POST", Fn: handler.CheckOut, Pattern: MustCompile(`^_plans/checkout$`)},
-	{Method: "GET", Fn: handler.CheckOutSuccess, Pattern: MustCompile(`^_checkout/success$`)},
-	{Method: "GET", Fn: handler.CheckOutCancelled, Pattern: MustCompile(`^_checkout/cancelled$`)},
+	{Method: "POST", Fn: handler.CheckOutSuccess, Pattern: MustCompile(`^_checkout/success$`)},
+	{Method: "POST", Fn: handler.CheckOutCancelled, Pattern: MustCompile(`^_checkout/cancelled$`)},
 
 	// Payments API
 	{Method: "GET", Fn: handler.ListPayments, Pattern: MustCompile(`^_payments$`)},
