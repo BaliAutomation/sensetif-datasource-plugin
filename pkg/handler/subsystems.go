@@ -13,12 +13,12 @@ import (
 )
 
 //goland:noinspection GoUnusedParameter
-func ListSubsystems(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func ListSubsystems(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	if len(params) < 2 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
 
-	subsystems := cassandra.FindAllSubsystems(orgId, params[1])
+	subsystems := clients.Cassandra.FindAllSubsystems(orgId, params[1])
 	rawJson, err := json.Marshal(subsystems)
 	if err != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
@@ -32,13 +32,13 @@ func ListSubsystems(orgId int64, params []string, body []byte, kafka *client.Kaf
 }
 
 //goland:noinspection GoUnusedParameter
-func GetSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func GetSubsystem(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
 
-	subsystem := cassandra.GetSubsystem(orgId, params[1], params[2])
+	subsystem := clients.Cassandra.GetSubsystem(orgId, params[1], params[2])
 	bytes, err := json.Marshal(subsystem)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
@@ -51,15 +51,15 @@ func GetSubsystem(orgId int64, params []string, body []byte, kafka *client.Kafka
 }
 
 //goland:noinspection GoUnusedParameter
-func UpdateSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
-	kafka.Send(model.ConfigurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
+func UpdateSubsystem(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
+	clients.Kafka.Send(model.ConfigurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
 }
 
 //goland:noinspection GoUnusedParameter
-func DeleteSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func DeleteSubsystem(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
@@ -69,7 +69,7 @@ func DeleteSubsystem(orgId int64, params []string, body []byte, kafka *client.Ka
 		"subsystem": params[2],
 	})
 	if err == nil {
-		kafka.Send(model.ConfigurationTopic, key, data)
+		clients.Kafka.Send(model.ConfigurationTopic, key, data)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil
@@ -80,12 +80,12 @@ func DeleteSubsystem(orgId int64, params []string, body []byte, kafka *client.Ka
 }
 
 //goland:noinspection GoUnusedParameter
-func RenameSubsystem(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func RenameSubsystem(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
 	key := "renameSubsystem:1:" + strconv.FormatInt(orgId, 10)
-	kafka.Send(model.ConfigurationTopic, key, body)
+	clients.Kafka.Send(model.ConfigurationTopic, key, body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil

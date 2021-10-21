@@ -16,14 +16,13 @@ import (
 )
 
 type ResourceHandler struct {
-	cassandra *client.CassandraClient
-	kafka     *client.KafkaClient
+	Clients *client.Clients
 }
 
 type Link struct {
 	Pattern *Regexp
 	Method  string
-	Fn      func(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error)
+	Fn      func(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error)
 }
 
 const regexName = `[a-zA-Z][a-zA-Z0-9-_]*`
@@ -56,9 +55,6 @@ var links = []Link{
 	{Method: "POST", Fn: handler.CheckOutSuccess, Pattern: MustCompile(`^_checkout/success$`)},
 	{Method: "POST", Fn: handler.CheckOutCancelled, Pattern: MustCompile(`^_checkout/cancelled$`)},
 
-	// Payments API
-	{Method: "GET", Fn: handler.ListPayments, Pattern: MustCompile(`^_payments$`)},
-
 	// Organizations API
 	{Method: "GET", Fn: handler.GetOrganization, Pattern: MustCompile(`^_organization$`)},
 }
@@ -83,17 +79,11 @@ func (p *ResourceHandler) CallResource(ctx context.Context, request *backend.Cal
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s, OrgId: %d", request.URL, request.Path, request.Method, orgId))
 
-	for idx, link := range links {
+	for _, link := range links {
 		if link.Method == request.Method {
 			parameters := link.Pattern.FindStringSubmatch(request.URL)
 			if len(parameters) >= 1 {
-				log.DefaultLogger.Info(fmt.Sprintf("Parameters: %q --> %s", strings.Join(parameters, ","), string(request.Body)))
-				log.DefaultLogger.Info("Resource Handler: " + fmt.Sprintf("%+v", p))
-				log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", p.kafka))
-				log.DefaultLogger.Info("Cassandra Client: " + fmt.Sprintf("%+v", p.cassandra))
-				log.DefaultLogger.Info("Function: " + strconv.FormatInt(int64(idx), 10))
-
-				result, err := link.Fn(orgId, parameters, request.Body, p.kafka, p.cassandra)
+				result, err := link.Fn(orgId, parameters, request.Body, p.Clients)
 				if err == nil {
 					log.DefaultLogger.Info(fmt.Sprintf("Result: %s", string(result.Body)))
 					if sendErr := sender.Send(result); sendErr != nil {

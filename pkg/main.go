@@ -15,31 +15,37 @@ import (
 func main() {
 	log.DefaultLogger.Info("Starting Sensetif plugin")
 	log.DefaultLogger.Info("createCassandraClient()")
-	cassandra_hosts := cassandraHosts()
+	cassandraHosts := cassandraHosts()
 	cassandraClient := client.CassandraClient{}
-	cassandraClient.InitializeCassandra(cassandra_hosts)
+	cassandraClient.InitializeCassandra(cassandraHosts)
 	log.DefaultLogger.Info("createKafkaClient()")
-	kafka_hosts := kafkaHosts()
+	kafkaHosts := kafkaHosts()
 	kafkaClient := client.KafkaClient{}
 	clientId, err := os.Hostname()
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
 		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
 	}
-	kafkaClient.InitializeKafka(kafka_hosts, clientId)
+	kafkaClient.InitializeKafka(kafkaHosts, clientId)
 	log.DefaultLogger.Info("createResourceHandler(): " + fmt.Sprintf("%+v", &kafkaClient))
+	log.DefaultLogger.Info("createStripeClient()")
+	stripeClient := client.StripeClient{}
+	clients := client.Clients{
+		Cassandra: &cassandraClient,
+		Kafka:     &kafkaClient,
+		Stripe:    &stripeClient,
+	}
 	resourceHandler := ResourceHandler{
-		cassandra: &cassandraClient,
-		kafka:     &kafkaClient,
+		Clients: &clients,
 	}
 
-	ds := createDatasource(&cassandraClient, cassandra_hosts)
+	ds := createDatasource(&cassandraClient, cassandraHosts)
 	startServing(ds, &resourceHandler)
 }
 
 func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler) {
 	log.DefaultLogger.Info("startServing()")
-	log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", resourceHandler.kafka))
+	log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", resourceHandler.Clients.Kafka))
 	serveOpts := datasource.ServeOpts{
 		CallResourceHandler: resourceHandler,
 		QueryDataHandler:    &ds,

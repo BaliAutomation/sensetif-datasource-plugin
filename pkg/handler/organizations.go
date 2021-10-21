@@ -12,9 +12,9 @@ import (
 )
 
 //goland:noinspection GoUnusedParameter
-func GetOrganization(orgId int64, params []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func GetOrganization(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("GetOrganization")
-	organization := cassandra.GetOrganization(orgId)
+	organization := clients.Cassandra.GetOrganization(orgId)
 	rawJson, err := json.Marshal(organization)
 	if err != nil {
 		log.DefaultLogger.Error("Unable to marshal json")

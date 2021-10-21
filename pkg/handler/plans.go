@@ -9,16 +9,9 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/checkout/session"
-	"github.com/stripe/stripe-go/v72/price"
-	"github.com/stripe/stripe-go/v72/product"
 	"net/http"
 	"os"
 	"strconv"
-)
-
-var (
-	Products = LoadProductsFromStripe()
-	Prices   = LoadPricesFromStripe()
 )
 
 type PlanPricing struct {
@@ -26,7 +19,7 @@ type PlanPricing struct {
 }
 
 type SubscriptionInfo struct {
-	Customer stripe.Customer `json:"customer"`
+	Customer int64           `json:"customer"`
 	Price    stripe.Price    `json:"price"`
 	Amount   int64           `json:"amount"`
 	Currency stripe.Currency `json:"currency"`
@@ -37,32 +30,37 @@ type SessionProxy struct {
 }
 
 //goland:noinspection GoUnusedParameter
-func ListPlans(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("ListPlans()")
 
 	productPrices := map[string][]stripe.Price{}
-	for _, prize := range Prices {
+	for _, prize := range clients.Stripe.Prices {
 		productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
 	}
 
+	organization := clients.Cassandra.GetOrganization(orgId)
+
 	result := []*model.PlanSettings{}
-	for _, prod := range Products {
+	for _, prod := range clients.Stripe.Products {
 		result = append(result, &model.PlanSettings{
-			Product: prod,
-			Prices:  productPrices[prod.ID],
+			Product:     prod,
+			Prices:      productPrices[prod.ID],
+			Selected:    clients.Stripe.IsSelected(orgId, prod.ID, organization.StripeCustomer),
+			Expired:     false,
+			GracePeriod: true,
 		})
 	}
 
-	resultJSON, _ := json.Marshal(result)
+	plansInJson, _ := json.Marshal(result)
 
 	return &backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
-		Body:    resultJSON,
+		Body:    plansInJson,
 	}, nil
 }
 
-func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func CheckOut(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOut()")
 	log.DefaultLogger.Info(fmt.Sprintf("Parameters: %+v", parameters))
 	log.DefaultLogger.Info(fmt.Sprintf("Body: %s", string(body)))
@@ -125,7 +123,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, kafka *client.Kafka
 	}
 }
 
-func CheckOutSuccess(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOutSuccess()")
 
 	var sessionProxy SessionProxy
@@ -146,15 +144,15 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, kafka *clien
 	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 		var paymentInfo = SubscriptionInfo{
-			Customer: stripe.Customer{},
+			Customer: orgId,
 			Amount:   stripeSession.AmountTotal,
 			Currency: stripeSession.Currency,
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
-			kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+			clients.Kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
 		} else {
-			kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+			clients.Kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
 		}
 	}
 	return &backend.CallResourceResponse{
@@ -163,7 +161,7 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, kafka *clien
 	}, nil
 }
 
-func CheckOutCancelled(orgId int64, parameters []string, body []byte, kafka *client.KafkaClient, cassandra *client.CassandraClient) (*backend.CallResourceResponse, error) {
+func CheckOutCancelled(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOutCancelled()")
 
 	var sessionProxy SessionProxy
@@ -184,15 +182,15 @@ func CheckOutCancelled(orgId int64, parameters []string, body []byte, kafka *cli
 	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 		var paymentInfo = SubscriptionInfo{
-			Customer: stripe.Customer{},
+			Customer: orgId,
 			Amount:   stripeSession.AmountTotal,
 			Currency: stripeSession.Currency,
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
-			kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+			clients.Kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
 		} else {
-			kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+			clients.Kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
 		}
 	}
 	return &backend.CallResourceResponse{
@@ -207,32 +205,4 @@ func GetStripeKey() string {
 	}
 	// If not set in environment, return the key for the Strip Test Mode.
 	return "sk_test_51JZvsFBil9jp3I2LySc7piIiEpXUlDdcxpXdVERSLL10nv2AUM1dfoCjSAZIMJ2XlC8zK1tkxJw85F2KlkBh9mxE00Vne8Kp5Z"
-}
-
-func LoadPricesFromStripe() []stripe.Price {
-	stripe.Key = GetStripeKey()
-	params := &stripe.PriceListParams{}
-	i := price.List(params)
-	result := []stripe.Price{}
-	for i.Next() {
-		p := *i.Price()
-		if p.Active {
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
-func LoadProductsFromStripe() []stripe.Product {
-	stripe.Key = GetStripeKey()
-	params := &stripe.ProductListParams{}
-	i := product.List(params)
-	result := []stripe.Product{}
-	for i.Next() {
-		p := *i.Product()
-		if p.Active {
-			result = append(result, p)
-		}
-	}
-	return result
 }
