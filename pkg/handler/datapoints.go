@@ -19,9 +19,6 @@ func ListDatapoints(orgId int64, params []string, body []byte, clients *client.C
 	}
 
 	datapoints := clients.Cassandra.FindAllDatapoints(orgId, params[1], params[2])
-	if len(datapoints) == 0 {
-		setupPlanIfNeeded(orgId)
-	}
 	rawJson, err := json.Marshal(datapoints)
 	if err != nil {
 		log.DefaultLogger.Error("Unable to marshal json")
@@ -33,12 +30,7 @@ func ListDatapoints(orgId int64, params []string, body []byte, clients *client.C
 	}, nil
 }
 
-func setupPlanIfNeeded(orgid int64) {
-
-}
-
-//goland:noinspection GoUnusedParameter
-func GetDatapoint(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
+func GetDatapoint(orgId int64, params []string, _ []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	if len(params) < 4 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
@@ -55,33 +47,17 @@ func GetDatapoint(orgId int64, params []string, body []byte, clients *client.Cli
 	}, nil
 }
 
-//goland:noinspection GoUnusedParameter
-func UpdateDatapoint(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
+func UpdateDatapoint(orgId int64, _ []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	clients.Kafka.Send(model.ConfigurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
 }
 
-//goland:noinspection GoUnusedParameter
-func DeleteDatapoint(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	if len(params) < 4 {
-		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
-	}
-	key := "deleteDatapoint:1:" + strconv.FormatInt(orgId, 10)
-	data, err := json.Marshal(map[string]string{
-		"project":   params[1],
-		"subsystem": params[2],
-		"datapoint": params[3],
-	})
-	if err == nil {
-		clients.Kafka.Send(model.ConfigurationTopic, key, data)
-		return &backend.CallResourceResponse{
-			Status: http.StatusAccepted,
-		}, nil
-	}
+func DeleteDatapoint(orgId int64, _ []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
+	clients.Kafka.Send(model.ConfigurationTopic, "deleteDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
-		Status: http.StatusBadRequest,
+		Status: http.StatusAccepted,
 	}, nil
 }
 
