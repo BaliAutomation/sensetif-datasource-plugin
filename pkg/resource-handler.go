@@ -65,19 +65,7 @@ func (p *ResourceHandler) CallResource(ctx context.Context, request *backend.Cal
 	if found {
 		return err2
 	}
-	log.DefaultLogger.Info("Not a file.")
-	orgId, err := getOrgId(request)
-	if err != nil {
-		log.DefaultLogger.Info(fmt.Sprintf("OrgId: %d, err: %s", orgId, err.Error()))
-		if sendErr := sender.Send(&backend.CallResourceResponse{
-			Status:  http.StatusNotAcceptable,
-			Headers: make(map[string][]string),
-			Body:    []byte("Header X-Grafana-Org-Id is missing."),
-		}); sendErr != nil {
-			log.DefaultLogger.Error("could not write response to the client." + err.Error())
-			return sendErr
-		}
-	}
+	orgId := request.PluginContext.OrgID
 	log.DefaultLogger.Info(fmt.Sprintf("URL: %s; PATH: %s, Method: %s, OrgId: %d", request.URL, request.Path, request.Method, orgId))
 
 	for _, link := range links {
@@ -115,12 +103,6 @@ func handleFileRequests(request *backend.CallResourceRequest, sender backend.Cal
 		return nil, true
 	}
 	return nil, false
-}
-
-func getOrgId(request *backend.CallResourceRequest) (int64, error) {
-	//orgIdHeader := request.Headers["X-Grafana-Org-Id"][0]
-	//return strconv.ParseInt(orgIdHeader, 10, 64)
-	return request.PluginContext.OrgID, nil
 }
 
 func notFound(message string, sender backend.CallResourceResponseSender) error {
