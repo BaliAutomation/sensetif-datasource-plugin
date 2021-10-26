@@ -54,11 +54,23 @@ func UpdateDatapoint(orgId int64, _ []string, body []byte, clients *client.Clien
 	}, nil
 }
 
-func DeleteDatapoint(orgId int64, _ []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	clients.Kafka.Send(model.ConfigurationTopic, "deleteDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
-	return &backend.CallResourceResponse{
-		Status: http.StatusAccepted,
-	}, nil
+func DeleteDatapoint(orgId int64, params []string, _ []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
+	if len(params) < 4 {
+		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
+	}
+	key := "deleteDatapoint:1:" + strconv.FormatInt(orgId, 10)
+	datapoint, err := GetDatapoint(orgId, params, nil, clients)
+	if err != nil {
+		return datapoint, err
+	}
+	body, err := json.Marshal(datapoint)
+	if err == nil {
+		clients.Kafka.Send(model.ConfigurationTopic, key, body)
+		return &backend.CallResourceResponse{
+			Status: http.StatusAccepted,
+		}, nil
+	}
+	return nil, err
 }
 
 //goland:noinspection GoUnusedParameter
