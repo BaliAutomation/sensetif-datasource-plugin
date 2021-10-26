@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	. "regexp"
-	"strconv"
 	"strings"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
@@ -119,8 +118,9 @@ func handleFileRequests(request *backend.CallResourceRequest, sender backend.Cal
 }
 
 func getOrgId(request *backend.CallResourceRequest) (int64, error) {
-	orgIdHeader := request.Headers["X-Grafana-Org-Id"][0]
-	return strconv.ParseInt(orgIdHeader, 10, 64)
+	//orgIdHeader := request.Headers["X-Grafana-Org-Id"][0]
+	//return strconv.ParseInt(orgIdHeader, 10, 64)
+	return request.PluginContext.OrgID, nil
 }
 
 func notFound(message string, sender backend.CallResourceResponseSender) error {
