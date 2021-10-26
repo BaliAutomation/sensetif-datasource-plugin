@@ -66,8 +66,10 @@ func (p *ResourceHandler) CallResource(ctx context.Context, request *backend.Cal
 	if found {
 		return err2
 	}
+	log.DefaultLogger.Info("Not a file.")
 	orgId, err := getOrgId(request)
 	if err != nil {
+		log.DefaultLogger.Info(fmt.Sprintf("OrgId: %d, err: %s", orgId, err.Error()))
 		if sendErr := sender.Send(&backend.CallResourceResponse{
 			Status:  http.StatusNotAcceptable,
 			Headers: make(map[string][]string),
