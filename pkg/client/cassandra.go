@@ -85,6 +85,27 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 	return reduceSize(maxValues, result)
 }
 
+func (cass *CassandraClient) GetCurrentLimits(orgId int64) model.PlanLimits {
+
+	log.DefaultLogger.Info("getOrganization:  " + strconv.FormatInt(orgId, 10))
+	//  SELECT maxdatapoints,maxstorage,minpollinterval FROM planlimits WHERE orgid = ? ;
+	scanner := cass.createQuery(planlimitsTablename, planlimitsQuery, orgId)
+
+	var limits model.PlanLimits
+	// default values
+	limits.MaxStorage = "b"
+	limits.MaxDatapoints = 50
+	limits.MinPollInterval = "one_hour"
+
+	for scanner.Next() {
+		err := scanner.Scan(&limits.MaxDatapoints, &limits.MaxStorage, &limits.MinPollInterval)
+		if err != nil {
+			log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+		}
+	}
+	return limits
+}
+
 func (cass *CassandraClient) GetOrganization(orgId int64) model.OrganizationSettings {
 	log.DefaultLogger.Info("getOrganization:  " + strconv.FormatInt(orgId, 10))
 	//SELECT name,email,stripecustomer,currentplan,address1,address2,zipcode,city,state,country FROM %s.%s WHERE orgid = ? AND DELETED = '1970-01-01 0:00:00+0000';"
@@ -262,6 +283,10 @@ const datapointsTablename = "datapoints"
 const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ? AND DELETED = '1970-01-01 0:00:00+0000' ALLOW FILTERING;"
 
 const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND DELETED = '1970-01-01 0:00:00+0000' ALLOW FILTERING;"
+
+const planlimitsQuery = "SELECT orgid,created,maxdatapoints,maxstorage,minpollinterval FROM  %s.%s WHERE orgid = 5 AND deleted = '1970-01-01 00:00:00.000000+0000' ALLOW FILTERING;"
+
+const planlimitsTablename = "planlimits"
 
 const timeseriesTablename = "timeseries"
 

@@ -7,5 +7,11 @@ type PlanSettings struct {
 	Prices      []stripe.Price `json:"prices"`
 	Selected    bool           `json:"selected"`
 	Expired     bool           `json:"expiring"`
-	GracePeriod bool           `json:"grace_period"`
+	GracePeriod bool           `json:"gracePeriod"`
+}
+
+type PlanLimits struct {
+	MaxStorage      string `json:"maxStorage"`
+	MaxDatapoints   uint64 `json:"maxDatapoints"`
+	MinPollInterval string `json:"minPollInterval"`
 }

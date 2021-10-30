@@ -48,6 +48,9 @@ var links = []Link{
 	{Method: "DELETE", Fn: handler.DeleteDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 	{Method: "POST", Fn: handler.RenameDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 
+	// Limits API
+	{Method: "GET", Fn: handler.CurrentLimits, Pattern: MustCompile(`^_limits/current$`)},
+
 	// Plans API
 	{Method: "GET", Fn: handler.ListPlans, Pattern: MustCompile(`^_plans$`)},
 	{Method: "POST", Fn: handler.CheckOut, Pattern: MustCompile(`^_plans/checkout$`)},

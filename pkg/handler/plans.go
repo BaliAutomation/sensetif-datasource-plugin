@@ -19,17 +19,37 @@ type PlanPricing struct {
 }
 
 type SubscriptionInfo struct {
-	OrgId           int64                `json:"orgId"`
-	Price           stripe.Price         `json:"price"`
-	Amount          int64                `json:"amount"`
-	Currency        stripe.Currency      `json:"currency"`
-	Subscription    *stripe.Subscription `json:"subscription"`
-	CheckoutSession string               `json:"checkout_session"`
-	Success         bool                 `json:"success"`
+	OrgId           int64           `json:"orgId"`
+	Price           stripe.Price    `json:"price"`
+	Amount          int64           `json:"amount"`
+	Currency        stripe.Currency `json:"currency"`
+	Subscription    string          `json:"subscription"`
+	CheckoutSession string          `json:"checkout_session"`
+	Success         bool            `json:"success"`
+	Customer        string          `json:"customer"`
+	Email           string          `json:"email"`
 }
 
 type SessionProxy struct {
 	Id string `json:"id"`
+}
+
+//goland:noinspection GoUnusedParameter
+func CurrentLimits(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
+	limits := clients.Cassandra.GetCurrentLimits(orgId)
+	limitsInJson, err := json.Marshal(limits)
+	if err != nil {
+		return &backend.CallResourceResponse{
+			Status:  http.StatusInternalServerError,
+			Headers: make(map[string][]string),
+			Body:    []byte("JSON marshaling failed for unknown reason."),
+		}, nil
+	}
+	return &backend.CallResourceResponse{
+		Status:  http.StatusOK,
+		Headers: make(map[string][]string),
+		Body:    limitsInJson,
+	}, nil
 }
 
 //goland:noinspection GoUnusedParameter
@@ -131,7 +151,6 @@ func CheckOut(orgId int64, parameters []string, body []byte, clients *client.Cli
 }
 
 func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	log.DefaultLogger.Info("CheckOutSuccess()")
 
 	var sessionProxy SessionProxy
 	err := json.Unmarshal(body, &sessionProxy)
@@ -147,16 +166,15 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 			Body:   []byte(fmt.Sprintf("%+v", err)),
 		}, nil
 	}
-	// TODO: Remove next two lines later!!!
-	stripeSess, _ := json.Marshal(stripeSession)
-	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %s", stripeSess))
-
+	log.DefaultLogger.Info("CheckOutSuccess() Session=" + stripeSession.ID + ", Subscription=" + stripeSession.Subscription.ID)
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 		var paymentInfo = SubscriptionInfo{
 			OrgId:           orgId,
+			Customer:        stripeSession.Customer.ID,
+			Email:           stripeSession.CustomerDetails.Email,
 			Amount:          stripeSession.AmountTotal,
 			Currency:        stripeSession.Currency,
-			Subscription:    stripeSession.Subscription,
+			Subscription:    stripeSession.Subscription.ID,
 			CheckoutSession: stripeSession.ID,
 			Success:         true,
 		}
@@ -181,7 +199,6 @@ func CheckOutCancelled(orgId int64, parameters []string, body []byte, clients *c
 	if err != nil {
 		return nil, err
 	}
-
 	params := &stripe.CheckoutSessionParams{}
 	stripeSession, err := session.Get(sessionProxy.Id, params)
 	if err != nil {
@@ -191,13 +208,14 @@ func CheckOutCancelled(orgId int64, parameters []string, body []byte, clients *c
 			Body:   []byte(fmt.Sprintf("%+v", err)),
 		}, nil
 	}
-	log.DefaultLogger.Info(fmt.Sprintf("Payment Cancelled: %+v", stripeSession))
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 		var paymentInfo = SubscriptionInfo{
 			OrgId:           orgId,
+			Customer:        stripeSession.Customer.ID,
+			Email:           stripeSession.CustomerDetails.Email,
 			Amount:          stripeSession.AmountTotal,
 			Currency:        stripeSession.Currency,
-			Subscription:    stripeSession.Subscription,
+			Subscription:    stripeSession.Subscription.ID,
 			CheckoutSession: stripeSession.ID,
 			Success:         false,
 		}
