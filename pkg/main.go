@@ -14,22 +14,9 @@ import (
 
 func main() {
 	log.DefaultLogger.Info("Starting Sensetif plugin")
-	log.DefaultLogger.Info("createCassandraClient()")
-	cassandraHosts := cassandraHosts()
-	cassandraClient := client.CassandraClient{}
-	cassandraClient.InitializeCassandra(cassandraHosts)
-	log.DefaultLogger.Info("createKafkaClient()")
-	kafkaHosts := kafkaHosts()
-	kafkaClient := client.KafkaClient{}
-	clientId, err := os.Hostname()
-	if err != nil {
-		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
-		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
-	}
-	kafkaClient.InitializeKafka(kafkaHosts, clientId)
-	log.DefaultLogger.Info("createResourceHandler(): " + fmt.Sprintf("%+v", &kafkaClient))
-	log.DefaultLogger.Info("createStripeClient()")
-	stripeClient := client.StripeClient{}
+	cassandraHosts, cassandraClient := createCassandraClient()
+	kafkaClient := createKafkaClient()
+	stripeClient := createStripeClient()
 	clients := client.Clients{
 		Cassandra: &cassandraClient,
 		Kafka:     &kafkaClient,
@@ -41,6 +28,49 @@ func main() {
 
 	ds := createDatasource(&cassandraClient, cassandraHosts)
 	startServing(ds, &resourceHandler)
+}
+
+func createCassandraClient() ([]string, client.CassandraClient) {
+	log.DefaultLogger.Info("createCassandraClient()")
+	cassandraHosts := cassandraHosts()
+	cassandraClient := client.CassandraClient{}
+	cassandraClient.InitializeCassandra(cassandraHosts)
+	return cassandraHosts, cassandraClient
+}
+
+func createKafkaClient() client.KafkaClient {
+	log.DefaultLogger.Info("createKafkaClient()")
+	kafkaHosts := kafkaHosts()
+	kafkaClient := client.KafkaClient{}
+	clientId, err := os.Hostname()
+	if err != nil {
+		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
+		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
+	}
+	kafkaClient.InitializeKafka(kafkaHosts, clientId)
+	log.DefaultLogger.Info("kafkaClient: " + fmt.Sprintf("%+v", &kafkaClient))
+	return kafkaClient
+}
+
+func createStripeClient() client.StripeClient {
+	log.DefaultLogger.Info("createStripeClient()")
+	stripeClient := client.StripeClient{}
+	stripeKey := stripeAuthKey()
+	if strings.HasPrefix(stripeKey, "sk_live") {
+		log.DefaultLogger.Info("****** Stripe PRODUCTION Key is used!!!!!!!")
+	} else {
+		log.DefaultLogger.Info("****** Stripe TEST Key is used!!!!!!!")
+	}
+	stripeClient.InitializeStripe(stripeKey)
+	return stripeClient
+}
+
+func stripeAuthKey() string {
+	if key, ok := os.LookupEnv("STRIPE_KEY"); ok {
+		return key
+	}
+	// If not set in environment, return the key for the Strip Test Mode.
+	return "sk_test_51JZvsFBil9jp3I2LySc7piIiEpXUlDdcxpXdVERSLL10nv2AUM1dfoCjSAZIMJ2XlC8zK1tkxJw85F2KlkBh9mxE00Vne8Kp5Z"
 }
 
 func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler) {

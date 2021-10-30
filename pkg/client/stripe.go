@@ -6,7 +6,6 @@ import (
 	"github.com/stripe/stripe-go/v72/customer"
 	"github.com/stripe/stripe-go/v72/price"
 	"github.com/stripe/stripe-go/v72/product"
-	"os"
 	"strconv"
 )
 
@@ -15,33 +14,32 @@ type Stripe interface {
 }
 
 type StripeClient struct {
-	PlansPerOrg map[int64]string
-	Products    []stripe.Product
-	Prices      []stripe.Price
+	PlansPerOrg      map[int64]string
+	Products         []stripe.Product
+	Prices           []stripe.Price
+	authorizationKey string
 }
 
 func (s *StripeClient) InitializeStripe(authorization string) {
+	log.DefaultLogger.Info("Initializing Stripe products.")
+	s.authorizationKey = authorization
 	s.PlansPerOrg = make(map[int64]string)
-	s.Products = LoadProductsFromStripe()
-	s.Prices = LoadPricesFromStripe()
-
+	s.Products = s.LoadProductsFromStripe()
+	s.Prices = s.LoadPricesFromStripe()
 }
 
-func GetStripeKey() string {
-	if key, ok := os.LookupEnv("STRIPE_KEY"); ok {
-		return key
-	}
-	// If not set in environment, return the key for the Strip Test Mode.
-	return "sk_test_51JZvsFBil9jp3I2LySc7piIiEpXUlDdcxpXdVERSLL10nv2AUM1dfoCjSAZIMJ2XlC8zK1tkxJw85F2KlkBh9mxE00Vne8Kp5Z"
+func (s *StripeClient) GetStripeKey() string {
+	return s.authorizationKey
 }
 
-func LoadPricesFromStripe() []stripe.Price {
-	stripe.Key = GetStripeKey()
+func (s *StripeClient) LoadPricesFromStripe() []stripe.Price {
+	stripe.Key = s.GetStripeKey()
 	params := &stripe.PriceListParams{}
 	i := price.List(params)
 	result := []stripe.Price{}
 	for i.Next() {
 		p := *i.Price()
+		log.DefaultLogger.Info("Found price: " + p.ID)
 		if p.Active {
 			result = append(result, p)
 		}
@@ -49,13 +47,14 @@ func LoadPricesFromStripe() []stripe.Price {
 	return result
 }
 
-func LoadProductsFromStripe() []stripe.Product {
-	stripe.Key = GetStripeKey()
+func (s *StripeClient) LoadProductsFromStripe() []stripe.Product {
+	stripe.Key = s.GetStripeKey()
 	params := &stripe.ProductListParams{}
 	i := product.List(params)
 	result := []stripe.Product{}
 	for i.Next() {
 		p := *i.Product()
+		log.DefaultLogger.Info("Found product: " + p.ID)
 		if p.Active {
 			result = append(result, p)
 		}
@@ -69,7 +68,7 @@ func (s *StripeClient) IsSelected(orgId int64, id string, stripeCustomer string)
 	}
 	planId, exists := s.PlansPerOrg[orgId]
 	if !exists {
-		stripe.Key = GetStripeKey()
+		stripe.Key = s.GetStripeKey()
 		params := &stripe.CustomerParams{}
 		cust, err := customer.Get(stripeCustomer, params)
 		if err != nil {
