@@ -19,10 +19,13 @@ type PlanPricing struct {
 }
 
 type SubscriptionInfo struct {
-	Customer int64           `json:"customer"`
-	Price    stripe.Price    `json:"price"`
-	Amount   int64           `json:"amount"`
-	Currency stripe.Currency `json:"currency"`
+	OrgId           int64                `json:"orgId"`
+	Price           stripe.Price         `json:"price"`
+	Amount          int64                `json:"amount"`
+	Currency        stripe.Currency      `json:"currency"`
+	Subscription    *stripe.Subscription `json:"subscription"`
+	CheckoutSession string               `json:"checkout_session"`
+	Success         bool                 `json:"success"`
 }
 
 type SessionProxy struct {
@@ -135,7 +138,6 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 	if err != nil {
 		return nil, err
 	}
-
 	params := &stripe.CheckoutSessionParams{}
 	stripeSession, err := session.Get(sessionProxy.Id, params)
 	if err != nil {
@@ -145,12 +147,18 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 			Body:   []byte(fmt.Sprintf("%+v", err)),
 		}, nil
 	}
-	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
+	// TODO: Remove next two lines later!!!
+	stripeSess, _ := json.Marshal(stripeSession)
+	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %s", stripeSess))
+
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 		var paymentInfo = SubscriptionInfo{
-			Customer: orgId,
-			Amount:   stripeSession.AmountTotal,
-			Currency: stripeSession.Currency,
+			OrgId:           orgId,
+			Amount:          stripeSession.AmountTotal,
+			Currency:        stripeSession.Currency,
+			Subscription:    stripeSession.Subscription,
+			CheckoutSession: stripeSession.ID,
+			Success:         true,
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
@@ -183,12 +191,15 @@ func CheckOutCancelled(orgId int64, parameters []string, body []byte, clients *c
 			Body:   []byte(fmt.Sprintf("%+v", err)),
 		}, nil
 	}
-	log.DefaultLogger.Info(fmt.Sprintf("Payment Success: %+v", stripeSession))
+	log.DefaultLogger.Info(fmt.Sprintf("Payment Cancelled: %+v", stripeSession))
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 		var paymentInfo = SubscriptionInfo{
-			Customer: orgId,
-			Amount:   stripeSession.AmountTotal,
-			Currency: stripeSession.Currency,
+			OrgId:           orgId,
+			Amount:          stripeSession.AmountTotal,
+			Currency:        stripeSession.Currency,
+			Subscription:    stripeSession.Subscription,
+			CheckoutSession: stripeSession.ID,
+			Success:         false,
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
