@@ -37,13 +37,15 @@ func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Cl
 	for _, prize := range clients.Stripe.Prices {
 		productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
 	}
-	prices, _ := json.Marshal(productPrices)
-	log.DefaultLogger.Info(fmt.Sprintf("Plans: %+v", prices))
+	p, _ := json.Marshal(productPrices)
+	log.DefaultLogger.Info(fmt.Sprintf("Plans: %s", p))
 
 	organization := clients.Cassandra.GetOrganization(orgId)
 
 	result := []*model.PlanSettings{}
-	for _, prod := range clients.Stripe.Products {
+	for n, prod := range clients.Stripe.Products {
+		p, _ := json.Marshal(prod)
+		log.DefaultLogger.Info(fmt.Sprintf("Product: %s - %s", n, p))
 		result = append(result, &model.PlanSettings{
 			Product:     prod,
 			Prices:      productPrices[prod.ID],
