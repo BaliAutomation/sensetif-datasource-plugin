@@ -20,7 +20,6 @@ type PlanPricing struct {
 
 type SubscriptionInfo struct {
 	OrgId           int64           `json:"orgId"`
-	Price           stripe.Price    `json:"price"`
 	Amount          int64           `json:"amount"`
 	Currency        stripe.Currency `json:"currency"`
 	Subscription    string          `json:"subscription"`
@@ -167,6 +166,13 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 		}, nil
 	}
 	log.DefaultLogger.Info("CheckOutSuccess() Session=" + stripeSession.ID + ", Subscription=" + stripeSession.Subscription.ID)
+	log.DefaultLogger.Info(
+		fmt.Sprintf("Subscription for %d. Valid %d days. From %d to %d",
+			orgId,
+			stripeSession.Subscription.DaysUntilDue,
+			stripeSession.Subscription.CurrentPeriodStart,
+			stripeSession.Subscription.CurrentPeriodEnd),
+	)
 	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
 		var paymentInfo = SubscriptionInfo{
 			OrgId:           orgId,
