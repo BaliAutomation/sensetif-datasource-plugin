@@ -2,6 +2,6 @@ package client
 
 type Clients struct {
 	Cassandra *CassandraClient
-	Kafka     *KafkaClient
+	Pulsar    *PulsarClient
 	Stripe    *StripeClient
 }

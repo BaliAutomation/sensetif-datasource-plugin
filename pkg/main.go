@@ -15,11 +15,11 @@ import (
 func main() {
 	log.DefaultLogger.Info("Starting Sensetif plugin")
 	cassandraHosts, cassandraClient := createCassandraClient()
-	kafkaClient := createKafkaClient()
+	pulsarClient := createPulsarClient()
 	stripeClient := createStripeClient()
 	clients := client.Clients{
 		Cassandra: &cassandraClient,
-		Kafka:     &kafkaClient,
+		Pulsar:    &pulsarClient,
 		Stripe:    &stripeClient,
 	}
 	resourceHandler := ResourceHandler{
@@ -38,18 +38,18 @@ func createCassandraClient() ([]string, client.CassandraClient) {
 	return cassandraHosts, cassandraClient
 }
 
-func createKafkaClient() client.KafkaClient {
+func createPulsarClient() client.PulsarClient {
 	log.DefaultLogger.Info("createKafkaClient()")
-	kafkaHosts := kafkaHosts()
-	kafkaClient := client.KafkaClient{}
+	pulsarHosts := pulsarHosts()
+	pulsarClient := client.PulsarClient{}
 	clientId, err := os.Hostname()
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
 		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
 	}
-	kafkaClient.InitializeKafka(kafkaHosts, clientId)
-	log.DefaultLogger.Info("kafkaClient: " + fmt.Sprintf("%+v", &kafkaClient))
-	return kafkaClient
+	pulsarClient.InitializePulsar(pulsarHosts, clientId)
+	log.DefaultLogger.Info("pulsarClient: " + fmt.Sprintf("%+v", &pulsarClient))
+	return pulsarClient
 }
 
 func createStripeClient() client.StripeClient {
@@ -75,7 +75,7 @@ func stripeAuthKey() string {
 
 func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler) {
 	log.DefaultLogger.Info("startServing()")
-	log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", resourceHandler.Clients.Kafka))
+	log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", resourceHandler.Clients.Pulsar))
 	serveOpts := datasource.ServeOpts{
 		CallResourceHandler: resourceHandler,
 		QueryDataHandler:    &ds,
@@ -108,11 +108,11 @@ func cassandraHosts() []string {
 	return []string{"192.168.1.42"} // Default at Niclas' lab
 }
 
-func kafkaHosts() []string {
-	log.DefaultLogger.Info("kafkaHosts()")
-	if hosts, ok := os.LookupEnv("KAFKA_HOSTS"); ok {
-		log.DefaultLogger.Info(fmt.Sprintf("Found Kafka Hosts:%s", hosts))
-		return strings.Split(hosts, ",")
+func pulsarHosts() string {
+	log.DefaultLogger.Info("pulsarHosts()")
+	if hosts, ok := os.LookupEnv("PULSAR_HOSTS"); ok {
+		log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hosts))
+		return hosts
 	}
-	return []string{"192.168.1.42:9092"} // Default at Niclas' lab
+	return "pulsar://192.168.255.38:6650" // Default at Niclas' lab
 }
