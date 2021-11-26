@@ -46,8 +46,8 @@ func GetProject(orgId int64, params []string, body []byte, clients *client.Clien
 func UpdateProject(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("UpdateProject()")
 	key := "updateProject:1:" + strconv.FormatInt(orgId, 10)
-	log.DefaultLogger.Info(fmt.Sprintf("%+v", clients.Kafka))
-	clients.Kafka.Send(model.ConfigurationTopic, key, body)
+	log.DefaultLogger.Info(fmt.Sprintf("%+v", clients.Pulsar))
+	clients.Pulsar.Send(model.ConfigurationTopic, key, body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
@@ -64,7 +64,7 @@ func DeleteProject(orgId int64, params []string, body []byte, clients *client.Cl
 		"project": params[1],
 	})
 	if err == nil {
-		clients.Kafka.Send(model.ConfigurationTopic, key, data)
+		clients.Pulsar.Send(model.ConfigurationTopic, key, data)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil
@@ -77,7 +77,7 @@ func DeleteProject(orgId int64, params []string, body []byte, clients *client.Cl
 //goland:noinspection GoUnusedParameter
 func RenameProject(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("RenameProject()")
-	clients.Kafka.Send(model.ConfigurationTopic, "renameProject:1:"+strconv.FormatInt(orgId, 10), body)
+	clients.Pulsar.Send(model.ConfigurationTopic, "renameProject:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil

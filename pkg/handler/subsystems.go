@@ -52,7 +52,7 @@ func GetSubsystem(orgId int64, params []string, body []byte, clients *client.Cli
 
 //goland:noinspection GoUnusedParameter
 func UpdateSubsystem(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	clients.Kafka.Send(model.ConfigurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
+	clients.Pulsar.Send(model.ConfigurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
@@ -69,7 +69,7 @@ func DeleteSubsystem(orgId int64, params []string, body []byte, clients *client.
 		"subsystem": params[2],
 	})
 	if err == nil {
-		clients.Kafka.Send(model.ConfigurationTopic, key, data)
+		clients.Pulsar.Send(model.ConfigurationTopic, key, data)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil
@@ -85,7 +85,7 @@ func RenameSubsystem(orgId int64, params []string, body []byte, clients *client.
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
 	key := "renameSubsystem:1:" + strconv.FormatInt(orgId, 10)
-	clients.Kafka.Send(model.ConfigurationTopic, key, body)
+	clients.Pulsar.Send(model.ConfigurationTopic, key, body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil

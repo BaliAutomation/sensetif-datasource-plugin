@@ -48,7 +48,7 @@ func GetDatapoint(orgId int64, params []string, _ []byte, clients *client.Client
 }
 
 func UpdateDatapoint(orgId int64, _ []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	clients.Kafka.Send(model.ConfigurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
+	clients.Pulsar.Send(model.ConfigurationTopic, "updateDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
@@ -65,7 +65,7 @@ func DeleteDatapoint(orgId int64, params []string, _ []byte, clients *client.Cli
 	}
 	body, err := json.Marshal(datapoint)
 	if err == nil {
-		clients.Kafka.Send(model.ConfigurationTopic, key, body)
+		clients.Pulsar.Send(model.ConfigurationTopic, key, body)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil
@@ -75,7 +75,7 @@ func DeleteDatapoint(orgId int64, params []string, _ []byte, clients *client.Cli
 
 //goland:noinspection GoUnusedParameter
 func RenameDatapoint(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	clients.Kafka.Send(model.ConfigurationTopic, "renameDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
+	clients.Pulsar.Send(model.ConfigurationTopic, "renameDatapoint:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil

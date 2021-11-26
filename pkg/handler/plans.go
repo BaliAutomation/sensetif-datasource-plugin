@@ -186,9 +186,9 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
-			clients.Kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+			clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
 		} else {
-			clients.Kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+			clients.Pulsar.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
 		}
 	}
 	return &backend.CallResourceResponse{
@@ -227,9 +227,9 @@ func CheckOutCancelled(orgId int64, parameters []string, body []byte, clients *c
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
-			clients.Kafka.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+			clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
 		} else {
-			clients.Kafka.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+			clients.Pulsar.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
 		}
 	}
 	return &backend.CallResourceResponse{
