@@ -17,8 +17,11 @@ type PulsarClient struct {
 }
 
 func (p *PulsarClient) Send(topic string, key string, value []byte) {
+	schema := pulsar.NewBytesSchema(make(map[string]string))
 	producer, err := p.client.CreateProducer(pulsar.ProducerOptions{
-		Topic: topic,
+		Topic:  topic,
+		Name:   "grafana-producer",
+		Schema: schema,
 	})
 
 	if err != nil {
