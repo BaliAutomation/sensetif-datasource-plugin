@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"net/http"
 	"strconv"
 
@@ -11,6 +12,10 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
+
+var updateProjectSchema = pulsar.NewBytesSchema(nil)
+var deleteProjectSchema = pulsar.NewBytesSchema(nil)
+var renameProjectSchema = pulsar.NewBytesSchema(nil)
 
 //goland:noinspection GoUnusedParameter
 func ListProjects(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
@@ -47,7 +52,7 @@ func UpdateProject(orgId int64, params []string, body []byte, clients *client.Cl
 	log.DefaultLogger.Info("UpdateProject()")
 	key := "updateProject:1:" + strconv.FormatInt(orgId, 10)
 	log.DefaultLogger.Info(fmt.Sprintf("%+v", *clients.Pulsar))
-	msgId := clients.Pulsar.Send(model.ConfigurationTopic, key, body)
+	msgId := clients.Pulsar.Send(model.ConfigurationTopic, updateProjectSchema, key, body)
 	log.DefaultLogger.Info(fmt.Sprintf("Sent Message: %s", msgId))
 	return &backend.CallResourceResponse{
 		Status: http.StatusOK,
@@ -66,7 +71,7 @@ func DeleteProject(orgId int64, params []string, body []byte, clients *client.Cl
 		"project": params[1],
 	})
 	if err == nil {
-		clients.Pulsar.Send(model.ConfigurationTopic, key, data)
+		clients.Pulsar.Send(model.ConfigurationTopic, deleteProjectSchema, key, data)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil
@@ -79,7 +84,7 @@ func DeleteProject(orgId int64, params []string, body []byte, clients *client.Cl
 //goland:noinspection GoUnusedParameter
 func RenameProject(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("RenameProject()")
-	clients.Pulsar.Send(model.ConfigurationTopic, "renameProject:1:"+strconv.FormatInt(orgId, 10), body)
+	clients.Pulsar.Send(model.ConfigurationTopic, renameProjectSchema, "renameProject:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil

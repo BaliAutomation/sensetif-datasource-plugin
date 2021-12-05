@@ -17,9 +17,7 @@ type PulsarClient struct {
 	producers map[string]pulsar.Producer
 }
 
-func (p *PulsarClient) Send(topic string, key string, value []byte) string {
-	properties := make(map[string]string)
-	schema := pulsar.NewBytesSchema(properties)
+func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, value []byte) string {
 	producer := p.producers[topic]
 	if producer == nil {
 		var err error
@@ -29,7 +27,7 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 			Schema: schema,
 		})
 		if err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%s, %+v", topic, err.Error(), err), err)
+			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, err))
 			return ""
 		}
 	}
@@ -47,17 +45,17 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 	return string(msgId.Serialize())
 }
 
-func (p *PulsarClient) InitializePulsar(hosts string, clientId string) {
+func (p *PulsarClient) InitializePulsar(pulsarHost string, clientId string) {
 	var err error
 	p.client, err = pulsar.NewClient(pulsar.ClientOptions{
-		URL:               hosts,
-		OperationTimeout:  30 * time.Second,
+		URL:               pulsarHost,
 		ConnectionTimeout: 30 * time.Second,
+		OperationTimeout:  30 * time.Second,
 	})
 	if err != nil {
 		log.DefaultLogger.Error("Failed to initialize Pulsar: " + err.Error())
 		return
 	} else {
-		log.DefaultLogger.Info(fmt.Sprintf("Connecting %s to Pulsar cluster %s.", clientId, hosts))
+		log.DefaultLogger.Info(fmt.Sprintf("Connecting %s to Pulsar cluster %s.", clientId, pulsarHost))
 	}
 }

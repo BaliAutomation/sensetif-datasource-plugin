@@ -8,7 +8,6 @@ require (
 	github.com/apache/pulsar-client-go v0.7.0 // indirect
 	github.com/apache/pulsar-client-go/oauth2 v0.0.0-20211114184309-7773d27562ce // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/confluentinc/confluent-kafka-go v1.7.0
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect

@@ -39,15 +39,15 @@ func createCassandraClient() ([]string, client.CassandraClient) {
 }
 
 func createPulsarClient() client.PulsarClient {
-	log.DefaultLogger.Info("createKafkaClient()")
-	pulsarHosts := pulsarHosts()
+	log.DefaultLogger.Info("createPulsarClient()")
+	pulsarHost := pulsarHost()
 	pulsarClient := client.PulsarClient{}
 	clientId, err := os.Hostname()
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Unable to get os.Hostname(): %s", err))
 		clientId = "grafana" + strconv.FormatInt(rand.Int63(), 10)
 	}
-	pulsarClient.InitializePulsar(pulsarHosts, clientId)
+	pulsarClient.InitializePulsar(pulsarHost, clientId)
 	log.DefaultLogger.Info("pulsarClient: " + fmt.Sprintf("%+v", &pulsarClient))
 	return pulsarClient
 }
@@ -75,7 +75,7 @@ func stripeAuthKey() string {
 
 func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler) {
 	log.DefaultLogger.Info("startServing()")
-	log.DefaultLogger.Info("Kafka Client: " + fmt.Sprintf("%+v", resourceHandler.Clients.Pulsar))
+	log.DefaultLogger.Info("Pulsar Client: " + fmt.Sprintf("%+v", resourceHandler.Clients.Pulsar))
 	serveOpts := datasource.ServeOpts{
 		CallResourceHandler: resourceHandler,
 		QueryDataHandler:    &ds,
@@ -108,11 +108,15 @@ func cassandraHosts() []string {
 	return []string{"192.168.1.42"} // Default at Niclas' lab
 }
 
-func pulsarHosts() string {
-	log.DefaultLogger.Info("pulsarHosts()")
+func pulsarHost() string {
+	log.DefaultLogger.Info("pulsarHost()")
 	if hosts, ok := os.LookupEnv("PULSAR_HOSTS"); ok {
-		log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hosts))
-		return hosts
+		hosts = strings.TrimPrefix(hosts, "pulsar://")
+		hostarray := strings.Split(hosts, ",")
+
+		// TODO: Should randomize a host, if this works.
+		log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hostarray[0]))
+		return hostarray[0]
 	}
 	return "pulsar://192.168.255.38:6650" // Default at Niclas' lab
 }

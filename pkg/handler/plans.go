@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/stripe/stripe-go/v72"
@@ -32,6 +33,9 @@ type SubscriptionInfo struct {
 type SessionProxy struct {
 	Id string `json:"id"`
 }
+
+var checkoutSuccessSchema = pulsar.NewBytesSchema(nil)
+var checkoutErrorSchema = pulsar.NewBytesSchema(nil)
 
 //goland:noinspection GoUnusedParameter
 func CurrentLimits(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
@@ -186,9 +190,9 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
-			clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+			clients.Pulsar.Send(model.PaymentsTopic, checkoutSuccessSchema, strconv.FormatInt(orgId, 10), bytes)
 		} else {
-			clients.Pulsar.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+			clients.Pulsar.Send(model.ErrorsTopic, checkoutErrorSchema, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
 		}
 	}
 	return &backend.CallResourceResponse{
@@ -199,39 +203,7 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 
 func CheckOutCancelled(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOutCancelled()")
-
-	var sessionProxy SessionProxy
-	err := json.Unmarshal(body, &sessionProxy)
-	if err != nil {
-		return nil, err
-	}
-	params := &stripe.CheckoutSessionParams{}
-	stripeSession, err := session.Get(sessionProxy.Id, params)
-	if err != nil {
-		log.DefaultLogger.Error("Unable to GET checkout session after CANCEL")
-		return &backend.CallResourceResponse{
-			Status: http.StatusInternalServerError,
-			Body:   []byte(fmt.Sprintf("%+v", err)),
-		}, nil
-	}
-	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
-		var paymentInfo = SubscriptionInfo{
-			OrgId:           orgId,
-			Customer:        stripeSession.Customer.ID,
-			Email:           stripeSession.CustomerDetails.Email,
-			Amount:          stripeSession.AmountTotal,
-			Currency:        stripeSession.Currency,
-			Subscription:    stripeSession.Subscription.ID,
-			CheckoutSession: stripeSession.ID,
-			Success:         false,
-		}
-		bytes, err := json.Marshal(paymentInfo)
-		if err == nil {
-			clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
-		} else {
-			clients.Pulsar.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
-		}
-	}
+	// TODO: WHAT???
 	return &backend.CallResourceResponse{
 		Status: http.StatusOK,
 		Body:   nil,

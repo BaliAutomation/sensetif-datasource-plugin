@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"net/http"
 	"strconv"
 
@@ -11,6 +12,10 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
+
+var updateSubsystemSchema = pulsar.NewBytesSchema(nil)
+var deleteSubsystemSchema = pulsar.NewBytesSchema(nil)
+var renameSubsystemSchema = pulsar.NewBytesSchema(nil)
 
 //goland:noinspection GoUnusedParameter
 func ListSubsystems(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
@@ -52,7 +57,7 @@ func GetSubsystem(orgId int64, params []string, body []byte, clients *client.Cli
 
 //goland:noinspection GoUnusedParameter
 func UpdateSubsystem(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	clients.Pulsar.Send(model.ConfigurationTopic, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
+	clients.Pulsar.Send(model.ConfigurationTopic, updateSubsystemSchema, "updateSubsystem:1:"+strconv.FormatInt(orgId, 10), body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
@@ -69,7 +74,7 @@ func DeleteSubsystem(orgId int64, params []string, body []byte, clients *client.
 		"subsystem": params[2],
 	})
 	if err == nil {
-		clients.Pulsar.Send(model.ConfigurationTopic, key, data)
+		clients.Pulsar.Send(model.ConfigurationTopic, deleteSubsystemSchema, key, data)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil
@@ -85,7 +90,7 @@ func RenameSubsystem(orgId int64, params []string, body []byte, clients *client.
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
 	key := "renameSubsystem:1:" + strconv.FormatInt(orgId, 10)
-	clients.Pulsar.Send(model.ConfigurationTopic, key, body)
+	clients.Pulsar.Send(model.ConfigurationTopic, renameSubsystemSchema, key, body)
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
