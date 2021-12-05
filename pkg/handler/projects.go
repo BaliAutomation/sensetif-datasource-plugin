@@ -46,8 +46,9 @@ func GetProject(orgId int64, params []string, body []byte, clients *client.Clien
 func UpdateProject(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("UpdateProject()")
 	key := "updateProject:1:" + strconv.FormatInt(orgId, 10)
-	log.DefaultLogger.Info(fmt.Sprintf("%+v", clients.Pulsar))
-	clients.Pulsar.Send(model.ConfigurationTopic, key, body)
+	log.DefaultLogger.Info(fmt.Sprintf("%+v", *clients.Pulsar))
+	msgId := clients.Pulsar.Send(model.ConfigurationTopic, key, body)
+	log.DefaultLogger.Info(fmt.Sprintf("Sent Message: %s", msgId))
 	return &backend.CallResourceResponse{
 		Status: http.StatusAccepted,
 	}, nil
