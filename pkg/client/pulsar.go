@@ -29,7 +29,7 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 			Schema: schema,
 		})
 		if err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s", topic))
+			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%s, %+v", topic, err.Error(), err), err)
 			return ""
 		}
 	}
