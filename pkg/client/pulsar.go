@@ -30,7 +30,7 @@ func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, valu
 		var err error
 		producer, err = p.client.CreateProducer(pulsar.ProducerOptions{
 			Topic:  topic,
-			Name:   "grafana-producer",
+			Name:   "grafana",
 			Schema: schema,
 		})
 		if err != nil {
