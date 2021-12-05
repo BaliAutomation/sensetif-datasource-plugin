@@ -50,7 +50,8 @@ func UpdateProject(orgId int64, params []string, body []byte, clients *client.Cl
 	msgId := clients.Pulsar.Send(model.ConfigurationTopic, key, body)
 	log.DefaultLogger.Info(fmt.Sprintf("Sent Message: %s", msgId))
 	return &backend.CallResourceResponse{
-		Status: http.StatusAccepted,
+		Status: http.StatusOK,
+		Body:   []byte("{ \"msgId\": \"" + msgId + "\""),
 	}, nil
 }
 
