@@ -17,7 +17,8 @@ type PulsarClient struct {
 }
 
 func (p *PulsarClient) Send(topic string, key string, value []byte) {
-	schema := pulsar.NewBytesSchema(make(map[string]string))
+	properties := make(map[string]string)
+	schema := pulsar.NewBytesSchema(properties)
 	producer, err := p.client.CreateProducer(pulsar.ProducerOptions{
 		Topic:  topic,
 		Name:   "grafana-producer",
@@ -37,8 +38,8 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) {
 		} else {
 			log.DefaultLogger.Info(fmt.Sprintf("Sent message to key %s on topic %s. Data: %+v\n", message.Key, producer.Topic(), message.Value))
 		}
+		defer producer.Close()
 	})
-	defer producer.Close()
 }
 
 func (p *PulsarClient) InitializePulsar(hosts string, clientId string) {
