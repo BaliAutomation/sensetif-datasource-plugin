@@ -116,7 +116,7 @@ func pulsarHost() string {
 
 		// TODO: Should randomize a host, if this works.
 		log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hostarray[0]))
-		return hostarray[0]
+		return "pulsar://" + hostarray[0]
 	}
 	return "pulsar://192.168.255.38:6650" // Default at Niclas' lab
 }
