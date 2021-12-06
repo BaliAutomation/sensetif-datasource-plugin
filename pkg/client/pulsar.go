@@ -31,9 +31,8 @@ func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, valu
 	if producer == nil {
 		var err error
 		producer, err = p.client.CreateProducer(pulsar.ProducerOptions{
-			Topic:  topic,
-			Name:   "grafana",
-			Schema: schema,
+			Topic: topic,
+			Name:  "grafana",
 		})
 		if err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, err))
