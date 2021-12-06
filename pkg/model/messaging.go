@@ -1,5 +1,9 @@
 package model
 
+const Tenant = "main"
+
+const Namespace = "sensetif"
+
 const ConfigurationTopic = "_configurations"
 
 const PaymentsTopic = "_payments"
