@@ -1,13 +1,13 @@
 package model
 
-const Tenant = "main"
+const Tenant = "sensetif"
 
-const Namespace = "sensetif"
+const Namespace = Tenant + "/main"
 
-const ConfigurationTopic = "_configurations"
+const ConfigurationTopic = "configurations"
 
-const PaymentsTopic = "_payments"
+const PaymentsTopic = "payments"
 
-const ErrorsTopic = "_exceptions.dl"
+const ErrorsTopic = "exceptions"
 
 const GlobalKey = "0"
