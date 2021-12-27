@@ -58,6 +58,7 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 }
 
 func (p *PulsarClient) InitializePulsar(pulsarHosts string, clientId string) {
+	p.producers = make(map[string]pulsar.Producer)
 	var err error
 	p.client, err = pulsar.NewClient(pulsar.ClientOptions{
 		URL:               pulsarHosts,
