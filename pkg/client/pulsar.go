@@ -31,9 +31,10 @@ func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, valu
 	if producer == nil {
 		var err error
 		options := pulsar.ProducerOptions{
-			Topic:  topic,
-			Name:   "grafana",
-			Schema: schema,
+			Topic: topic,
+			//Name:   "grafana",
+			//Schema: schema,
+			DisableBatching: true,
 		}
 		producer, err = p.client.CreateProducer(options)
 		if err != nil {
@@ -55,10 +56,10 @@ func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, valu
 	return string(msgId.Serialize())
 }
 
-func (p *PulsarClient) InitializePulsar(pulsarHost string, clientId string) {
+func (p *PulsarClient) InitializePulsar(pulsarHosts string, clientId string) {
 	var err error
 	p.client, err = pulsar.NewClient(pulsar.ClientOptions{
-		URL:               pulsarHost,
+		URL:               pulsarHosts,
 		ConnectionTimeout: 30 * time.Second,
 		OperationTimeout:  30 * time.Second,
 	})
@@ -66,6 +67,7 @@ func (p *PulsarClient) InitializePulsar(pulsarHost string, clientId string) {
 		log.DefaultLogger.Error("Failed to initialize Pulsar: " + err.Error())
 		return
 	} else {
-		log.DefaultLogger.Info(fmt.Sprintf("Connecting %s to Pulsar cluster %s.", clientId, pulsarHost))
+		log.DefaultLogger.Info(fmt.Sprintf("Connecting %s to Pulsar cluster %s.", clientId, pulsarHosts))
 	}
+	defer p.client.Close()
 }

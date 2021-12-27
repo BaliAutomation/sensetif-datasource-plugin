@@ -105,18 +105,17 @@ func cassandraHosts() []string {
 		log.DefaultLogger.Info(fmt.Sprintf("Found Cassandra Hosts:%s", hosts))
 		return strings.Split(hosts, ",")
 	}
-	return []string{"192.168.1.42"} // Default at Niclas' lab
+	return []string{"192.168.255.38"} // Default at Niclas' lab
 }
 
 func pulsarHost() string {
 	log.DefaultLogger.Info("pulsarHost()")
 	if hosts, ok := os.LookupEnv("PULSAR_HOSTS"); ok {
-		hosts = strings.TrimPrefix(hosts, "pulsar://")
-		hostarray := strings.Split(hosts, ",")
-
-		// TODO: Should randomize a host, if this works.
-		log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hostarray[0]))
-		return "pulsar://" + hostarray[0]
+		//hosts = strings.TrimPrefix(hosts, "pulsar://")
+		//hostarray := strings.Split(hosts, ",")
+		//log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hostarray[0]))
+		//return "pulsar://" + hostarray[0]
+		return hosts
 	}
 	return "pulsar://192.168.255.38:6650" // Default at Niclas' lab
 }
