@@ -19,7 +19,7 @@ type PulsarClient struct {
 }
 
 func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, value []byte) string {
-	topic = model.Tenant + "/" + model.Namespace + "/" + topic
+	topic = model.Namespace + "/" + topic
 	parts, e := p.client.TopicPartitions(topic)
 	if e != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, e))
