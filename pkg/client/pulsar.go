@@ -18,7 +18,7 @@ type PulsarClient struct {
 	producers map[string]pulsar.Producer
 }
 
-func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, value []byte) string {
+func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 	topic = model.Namespace + "/" + topic
 	parts, e := p.client.TopicPartitions(topic)
 	if e != nil {
@@ -31,18 +31,19 @@ func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, valu
 	if producer == nil {
 		var err error
 		options := pulsar.ProducerOptions{
-			Topic: topic,
-			//Name:   "grafana",
-			//Schema: schema,
+			Topic:           topic,
 			DisableBatching: true,
 		}
 		producer, err = p.client.CreateProducer(options)
 		if err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, err))
 			return ""
+		} else {
+			log.DefaultLogger.Info(fmt.Sprintf("Created a new producer for topic %s", topic))
 		}
+		p.producers[topic] = producer
+		defer p.producers[topic].Close()
 	}
-	// NNSXS.IHWANPHGRJPRDMW4WAV6ZBK6O5F75MB6HPNGDPY.ZH3IC37VOLEIXI5PGVNXUTPIFLET6B3LGHUR2QFC7ACOVZMW4KWA
 	message := &pulsar.ProducerMessage{
 		Payload: value,
 		Key:     key,
@@ -51,7 +52,7 @@ func (p *PulsarClient) Send(topic string, schema pulsar.Schema, key string, valu
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Failed to send a message: %s\n%s : %+v\n", err, message.Key, message.Value))
 	} else {
-		log.DefaultLogger.Info(fmt.Sprintf("Sent message to key %s on topic %s. Id: %s. Data: %+v\n", message.Key, producer.Topic(), msgId, message.Value))
+		log.DefaultLogger.Info(fmt.Sprintf("Sent message on topic %s with key %s. Id: %s. Data: %+v\n", producer.Topic(), message.Key, msgId, message.Payload))
 	}
 	return string(msgId.Serialize())
 }

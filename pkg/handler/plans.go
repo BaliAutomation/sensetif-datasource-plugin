@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
-	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/stripe/stripe-go/v72"
@@ -33,9 +32,6 @@ type SubscriptionInfo struct {
 type SessionProxy struct {
 	Id string `json:"id"`
 }
-
-var checkoutSuccessSchema = pulsar.NewBytesSchema(nil)
-var checkoutErrorSchema = pulsar.NewBytesSchema(nil)
 
 //goland:noinspection GoUnusedParameter
 func CurrentLimits(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
@@ -190,9 +186,9 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 		}
 		bytes, err := json.Marshal(paymentInfo)
 		if err == nil {
-			clients.Pulsar.Send(model.PaymentsTopic, checkoutSuccessSchema, strconv.FormatInt(orgId, 10), bytes)
+			clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
 		} else {
-			clients.Pulsar.Send(model.ErrorsTopic, checkoutErrorSchema, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
+			clients.Pulsar.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
 		}
 	}
 	return &backend.CallResourceResponse{
