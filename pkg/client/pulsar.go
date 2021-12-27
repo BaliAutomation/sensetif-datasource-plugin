@@ -42,7 +42,6 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 			log.DefaultLogger.Info(fmt.Sprintf("Created a new producer for topic %s", topic))
 		}
 		p.producers[topic] = producer
-		defer p.producers[topic].Close()
 	}
 	message := &pulsar.ProducerMessage{
 		Payload: value,
@@ -52,7 +51,7 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 	if err != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Failed to send a message: %s\n%s : %+v\n", err, message.Key, message.Value))
 	} else {
-		log.DefaultLogger.Info(fmt.Sprintf("Sent message on topic %s with key %s. Id: %s. Data: %+v\n", producer.Topic(), message.Key, msgId, message.Payload))
+		log.DefaultLogger.Info(fmt.Sprintf("Sent message on topic %s with key %s. Id: %s. Data: %+v\n", producer.Topic(), message.Key, msgId, string(message.Payload)))
 	}
 	return string(msgId.Serialize())
 }
