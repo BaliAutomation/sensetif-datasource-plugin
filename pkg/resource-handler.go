@@ -48,6 +48,10 @@ var links = []Link{
 	{Method: "DELETE", Fn: handler.DeleteDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 	{Method: "POST", Fn: handler.RenameDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
 
+	// Import API
+	{Method: "POST", Fn: handler.ImportLink2WebFvc1, Pattern: MustCompile(`^(` + regexName + `)/_import/fvc1$`)},
+	{Method: "POST", Fn: handler.ImportTtnv3App, Pattern: MustCompile(`^(` + regexName + `)/_import/ttnv3$`)},
+
 	// Limits API
 	{Method: "GET", Fn: handler.CurrentLimits, Pattern: MustCompile(`^_limits/current$`)},
 
