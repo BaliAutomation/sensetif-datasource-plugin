@@ -65,13 +65,13 @@ func (cass *CassandraClient) Reinitialize() {
 }
 
 func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
-	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
+	//log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
 	var result []model.TsPair
 	startYearMonth := from.Year()*12 + int(from.Month()) - 1
 	endYearMonth := to.Year()*12 + int(to.Month()) - 1
-	log.DefaultLogger.Info(fmt.Sprintf("yearMonths:  start=%d, end=%d", startYearMonth, endYearMonth))
+	//log.DefaultLogger.Info(fmt.Sprintf("yearMonths:  start=%d, end=%d", startYearMonth, endYearMonth))
 
-	for yearmonth := endYearMonth; yearmonth <= startYearMonth; yearmonth-- {
+	for yearmonth := endYearMonth; yearmonth >= startYearMonth; yearmonth-- {
 		scanner := cass.createQuery(timeseriesTablename, tsQuery, org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to)
 		for scanner.Next() {
 			var rowValue model.TsPair
@@ -217,7 +217,7 @@ func (cass *CassandraClient) Err() error {
 func (cass *CassandraClient) createQuery(tableName string, query string, args ...interface{}) gocql.Scanner {
 	t := fmt.Sprintf(query, cass.clusterConfig.Keyspace, tableName)
 	q := cass.session.Query(t).Consistency(gocql.One).Idempotent(true).Bind(args...)
-	log.DefaultLogger.Info("query:  " + q.String())
+	//	log.DefaultLogger.Info("query:  " + q.String())
 	return q.Iter().Scanner()
 }
 
