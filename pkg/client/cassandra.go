@@ -79,7 +79,8 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 			if err != nil {
 				log.DefaultLogger.Error("Internal Error? Failed to read record", err)
 			}
-			result = append(result, rowValue)
+			p := []model.TsPair{rowValue}
+			result = append(p, result...)
 		}
 	}
 	return reduceSize(maxValues, result)
