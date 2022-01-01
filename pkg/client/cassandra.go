@@ -71,7 +71,7 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 	endYearMonth := to.Year()*12 + int(to.Month()) - 1
 	log.DefaultLogger.Info(fmt.Sprintf("yearMonths:  start=%d, end=%d", startYearMonth, endYearMonth))
 
-	for yearmonth := startYearMonth; yearmonth <= endYearMonth; yearmonth++ {
+	for yearmonth := endYearMonth; yearmonth <= startYearMonth; yearmonth-- {
 		scanner := cass.createQuery(timeseriesTablename, tsQuery, org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to)
 		for scanner.Next() {
 			var rowValue model.TsPair
