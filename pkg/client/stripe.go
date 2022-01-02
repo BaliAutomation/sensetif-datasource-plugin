@@ -34,7 +34,12 @@ func (s *StripeClient) GetStripeKey() string {
 
 func (s *StripeClient) LoadPricesFromStripe() []stripe.Price {
 	stripe.Key = s.GetStripeKey()
-	params := &stripe.PriceListParams{}
+	include := true
+	recurring := "recurring"
+	params := &stripe.PriceListParams{
+		Active: &include,
+		Type:   &recurring,
+	}
 	i := price.List(params)
 	result := []stripe.Price{}
 	for i.Next() {

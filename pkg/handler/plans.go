@@ -19,14 +19,15 @@ type PlanPricing struct {
 }
 
 type SubscriptionInfo struct {
-	OrgId           int64           `json:"orgId"`
-	Amount          int64           `json:"amount"`
-	Currency        stripe.Currency `json:"currency"`
-	Subscription    string          `json:"subscription"`
-	CheckoutSession string          `json:"checkout_session"`
-	Success         bool            `json:"success"`
-	Customer        string          `json:"customer"`
-	Email           string          `json:"email"`
+	OrgId           int64                               `json:"orgId"`
+	Amount          int64                               `json:"amount"`
+	Currency        stripe.Currency                     `json:"currency"`
+	Subscription    string                              `json:"subscription"`
+	CheckoutSession string                              `json:"checkout_session"`
+	Success         bool                                `json:"success"`
+	Customer        string                              `json:"customer"`
+	Email           string                              `json:"email"`
+	PaymentStatus   stripe.CheckoutSessionPaymentStatus `json:"payment_status"`
 }
 
 type SessionProxy struct {
@@ -57,32 +58,26 @@ func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Cl
 
 	productPrices := map[string][]stripe.Price{}
 	for _, prize := range clients.Stripe.Prices {
-		p, _ := json.Marshal(prize)
-		log.DefaultLogger.Info(fmt.Sprintf("Product: %s", p))
-		if prize.Product.Metadata["category"] == "sensetif" {
-			productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
-		}
+		productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
 	}
 	p, _ := json.Marshal(productPrices)
 	log.DefaultLogger.Info(fmt.Sprintf("Plans: %s", p))
-
 	organization := clients.Cassandra.GetOrganization(orgId)
-
-	result := []*model.PlanSettings{}
-	for n, prod := range clients.Stripe.Products {
-		p, _ := json.Marshal(prod)
-		log.DefaultLogger.Info(fmt.Sprintf("Product: %s - %s", n, p))
-		result = append(result, &model.PlanSettings{
-			Product:     prod,
-			Prices:      productPrices[prod.ID],
-			Selected:    clients.Stripe.IsSelected(orgId, prod.ID, organization.StripeCustomer),
-			Expired:     false,
-			GracePeriod: true,
-		})
+	var result []*model.PlanSettings
+	for _, prod := range clients.Stripe.Products {
+		if prod.Metadata["category"] == "sensetif" && prod.Active {
+			result = append(result, &model.PlanSettings{
+				Product:     prod,
+				Prices:      productPrices[prod.ID],
+				Selected:    clients.Stripe.IsSelected(orgId, prod.ID, organization.StripeCustomer),
+				Expired:     false,
+				GracePeriod: true,
+			})
+		}
 	}
 
 	plansInJson, _ := json.Marshal(result)
-
+	log.DefaultLogger.Info(fmt.Sprintf("Products: %s", plansInJson))
 	return &backend.CallResourceResponse{
 		Status:  http.StatusOK,
 		Headers: make(map[string][]string),
@@ -177,33 +172,65 @@ func CheckOutSuccess(orgId int64 /*parameters*/, _ []string, body []byte, client
 			stripeSession.Subscription.CurrentPeriodStart,
 			stripeSession.Subscription.CurrentPeriodEnd),
 	)
-	if stripeSession.PaymentStatus == stripe.CheckoutSessionPaymentStatusPaid {
-		var paymentInfo = SubscriptionInfo{
-			OrgId:           orgId,
-			Customer:        stripeSession.Customer.ID,
-			Email:           stripeSession.CustomerDetails.Email,
-			Amount:          stripeSession.AmountTotal,
-			Currency:        stripeSession.Currency,
-			Subscription:    stripeSession.Subscription.ID,
-			CheckoutSession: stripeSession.ID,
-			Success:         true,
-		}
-		bytes, err := json.Marshal(paymentInfo)
-		if err == nil {
-			clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
-		} else {
-			clients.Pulsar.Send(model.ErrorsTopic, model.GlobalKey, []byte(fmt.Sprintf("%+v", err)))
-		}
+	var paymentInfo = SubscriptionInfo{
+		OrgId:           orgId,
+		Customer:        stripeSession.Customer.ID,
+		Email:           stripeSession.CustomerDetails.Email,
+		Amount:          stripeSession.AmountTotal,
+		Currency:        stripeSession.Currency,
+		Subscription:    stripeSession.Subscription.ID,
+		CheckoutSession: stripeSession.ID,
+		Success:         true,
+		PaymentStatus:   stripeSession.PaymentStatus,
 	}
+	bytes, err := json.Marshal(paymentInfo)
+	if err == nil {
+		clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+	} else {
+		clients.Pulsar.Send(model.PaymentErrorTopic, strconv.FormatInt(orgId, 10), []byte(fmt.Sprintf("%+v", err)))
+	}
+
 	return &backend.CallResourceResponse{
 		Status: http.StatusOK,
 		Body:   nil,
 	}, nil
 }
 
-func CheckOutCancelled(orgId int64 /* parameters */, _ []string /* body */, _ []byte /* clients */, _ *client.Clients) (*backend.CallResourceResponse, error) {
+func CheckOutCancelled(orgId int64 /* parameters */, _ []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 	log.DefaultLogger.Info("CheckOutCancelled(" + strconv.FormatInt(orgId, 10) + ")")
-	// TODO: WHAT???
+	var sessionProxy SessionProxy
+	err := json.Unmarshal(body, &sessionProxy)
+	if err != nil {
+		return nil, err
+	}
+	params := &stripe.CheckoutSessionParams{}
+	stripeSession, err := session.Get(sessionProxy.Id, params)
+	if err != nil {
+		log.DefaultLogger.Error("Unable to GET checkout session after Success")
+		return &backend.CallResourceResponse{
+			Status: http.StatusInternalServerError,
+			Body:   []byte(fmt.Sprintf("%+v", err)),
+		}, nil
+	}
+	log.DefaultLogger.Info("CheckOutCancelled() Session=" + stripeSession.ID + ", Subscription=" + stripeSession.Subscription.ID)
+
+	var paymentInfo = SubscriptionInfo{
+		OrgId:           orgId,
+		Customer:        stripeSession.Customer.ID,
+		Email:           stripeSession.CustomerDetails.Email,
+		Amount:          stripeSession.AmountTotal,
+		Currency:        stripeSession.Currency,
+		Subscription:    stripeSession.Subscription.ID,
+		CheckoutSession: stripeSession.ID,
+		Success:         false,
+		PaymentStatus:   stripeSession.PaymentStatus,
+	}
+	bytes, err := json.Marshal(paymentInfo)
+	if err == nil {
+		clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+	} else {
+		clients.Pulsar.Send(model.PaymentErrorTopic, strconv.FormatInt(orgId, 10), []byte(fmt.Sprintf("%+v", err)))
+	}
 	return &backend.CallResourceResponse{
 		Status: http.StatusOK,
 		Body:   nil,

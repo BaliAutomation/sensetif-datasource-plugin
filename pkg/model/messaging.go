@@ -8,6 +8,8 @@ const ConfigurationTopic = "configurations"
 
 const PaymentsTopic = "payments"
 
+const PaymentErrorTopic = "payment_errors"
+
 const ErrorsTopic = "exceptions"
 
 const GlobalKey = "0"
