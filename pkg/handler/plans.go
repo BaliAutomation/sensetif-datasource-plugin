@@ -57,6 +57,8 @@ func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Cl
 
 	productPrices := map[string][]stripe.Price{}
 	for _, prize := range clients.Stripe.Prices {
+		p, _ := json.Marshal(prize)
+		log.DefaultLogger.Info(fmt.Sprintf("Product: %s", p))
 		if prize.Product.Metadata["category"] == "sensetif" {
 			productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
 		}
@@ -88,8 +90,8 @@ func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Cl
 	}, nil
 }
 
-func CheckOut(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	log.DefaultLogger.Info("CheckOut()")
+func CheckOut(orgId int64, parameters []string, body []byte, _ *client.Clients) (*backend.CallResourceResponse, error) {
+	log.DefaultLogger.Info("CheckOut(" + strconv.FormatInt(orgId, 10) + ")")
 	log.DefaultLogger.Info(fmt.Sprintf("Parameters: %+v", parameters))
 	log.DefaultLogger.Info(fmt.Sprintf("Body: %s", string(body)))
 
@@ -151,7 +153,7 @@ func CheckOut(orgId int64, parameters []string, body []byte, clients *client.Cli
 	}
 }
 
-func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
+func CheckOutSuccess(orgId int64 /*parameters*/, _ []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
 
 	var sessionProxy SessionProxy
 	err := json.Unmarshal(body, &sessionProxy)
@@ -199,8 +201,8 @@ func CheckOutSuccess(orgId int64, parameters []string, body []byte, clients *cli
 	}, nil
 }
 
-func CheckOutCancelled(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-	log.DefaultLogger.Info("CheckOutCancelled()")
+func CheckOutCancelled(orgId int64 /* parameters */, _ []string /* body */, _ []byte /* clients */, _ *client.Clients) (*backend.CallResourceResponse, error) {
+	log.DefaultLogger.Info("CheckOutCancelled(" + strconv.FormatInt(orgId, 10) + ")")
 	// TODO: WHAT???
 	return &backend.CallResourceResponse{
 		Status: http.StatusOK,
