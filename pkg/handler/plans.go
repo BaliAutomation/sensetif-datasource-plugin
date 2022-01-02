@@ -57,7 +57,9 @@ func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Cl
 
 	productPrices := map[string][]stripe.Price{}
 	for _, prize := range clients.Stripe.Prices {
-		productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
+		if prize.Product.Metadata["category"] == "sensetif" {
+			productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
+		}
 	}
 	p, _ := json.Marshal(productPrices)
 	log.DefaultLogger.Info(fmt.Sprintf("Plans: %s", p))
