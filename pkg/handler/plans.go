@@ -19,7 +19,6 @@ type PlanPricing struct {
 }
 
 type SubscriptionInfo struct {
-	OrgId           int64                               `json:"orgId"`
 	Amount          int64                               `json:"amount"`
 	Currency        stripe.Currency                     `json:"currency"`
 	Subscription    string                              `json:"subscription"`
@@ -173,7 +172,6 @@ func CheckOutSuccess(orgId int64 /*parameters*/, _ []string, body []byte, client
 			stripeSession.Subscription.CurrentPeriodEnd),
 	)
 	var paymentInfo = SubscriptionInfo{
-		OrgId:           orgId,
 		Customer:        stripeSession.Customer.ID,
 		Email:           stripeSession.CustomerDetails.Email,
 		Amount:          stripeSession.AmountTotal,
@@ -215,7 +213,6 @@ func CheckOutCancelled(orgId int64 /* parameters */, _ []string, body []byte, cl
 	log.DefaultLogger.Info("CheckOutCancelled() Session=" + stripeSession.ID + ", Subscription=" + stripeSession.Subscription.ID)
 
 	var paymentInfo = SubscriptionInfo{
-		OrgId:           orgId,
 		Customer:        stripeSession.Customer.ID,
 		Email:           stripeSession.CustomerDetails.Email,
 		Amount:          stripeSession.AmountTotal,
