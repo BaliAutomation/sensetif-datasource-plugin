@@ -22,11 +22,11 @@ type SubscriptionInfo struct {
 	Amount          int64                               `json:"amount"`
 	Currency        stripe.Currency                     `json:"currency"`
 	Subscription    string                              `json:"subscription"`
-	CheckoutSession string                              `json:"checkout_session"`
+	CheckoutSession string                              `json:"checkoutSession"`
 	Success         bool                                `json:"success"`
 	Customer        string                              `json:"customer"`
 	Email           string                              `json:"email"`
-	PaymentStatus   stripe.CheckoutSessionPaymentStatus `json:"payment_status"`
+	PaymentStatus   stripe.CheckoutSessionPaymentStatus `json:"paymentStatus"`
 }
 
 type SessionProxy struct {
