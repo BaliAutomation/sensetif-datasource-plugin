@@ -24,29 +24,31 @@ type Link struct {
 	Fn      func(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error)
 }
 
-const regexName = `[a-zA-Z][a-zA-Z0-9-_]*`
+const projectRegexName = `[a-zA-Z][a-zA-Z0-9_.\-]*`
+const subsystemRegexName = `[a-zA-Z][a-zA-Z0-9_.\-]*`
+const datapointRegexName = `[a-zA-Z][a-zA-Z0-9_.\-$\[\]]*`
 
 var links = []Link{
 	// Projects API
 	{Method: "GET", Fn: handler.ListProjects, Pattern: MustCompile(`^_$`)},
-	{Method: "GET", Fn: handler.GetProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
-	{Method: "PUT", Fn: handler.UpdateProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
-	{Method: "DELETE", Fn: handler.DeleteProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
-	{Method: "POST", Fn: handler.RenameProject, Pattern: MustCompile(`^(` + regexName + `)$`)},
+	{Method: "GET", Fn: handler.GetProject, Pattern: MustCompile(`^(` + projectRegexName + `)$`)},
+	{Method: "PUT", Fn: handler.UpdateProject, Pattern: MustCompile(`^(` + projectRegexName + `)$`)},
+	{Method: "DELETE", Fn: handler.DeleteProject, Pattern: MustCompile(`^(` + projectRegexName + `)$`)},
+	{Method: "POST", Fn: handler.RenameProject, Pattern: MustCompile(`^(` + projectRegexName + `)$`)},
 
 	// Subsystems API
-	{Method: "GET", Fn: handler.ListSubsystems, Pattern: MustCompile(`^(` + regexName + `)/_$`)},
-	{Method: "GET", Fn: handler.GetSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
-	{Method: "PUT", Fn: handler.UpdateSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
-	{Method: "DELETE", Fn: handler.DeleteSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
-	{Method: "POST", Fn: handler.RenameSubsystem, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "GET", Fn: handler.ListSubsystems, Pattern: MustCompile(`^(` + projectRegexName + `)/_$`)},
+	{Method: "GET", Fn: handler.GetSubsystem, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)$`)},
+	{Method: "PUT", Fn: handler.UpdateSubsystem, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)$`)},
+	{Method: "DELETE", Fn: handler.DeleteSubsystem, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)$`)},
+	{Method: "POST", Fn: handler.RenameSubsystem, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)$`)},
 
 	// Datapoint API
-	{Method: "GET", Fn: handler.ListDatapoints, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/_$`)},
-	{Method: "GET", Fn: handler.GetDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
-	{Method: "PUT", Fn: handler.UpdateDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
-	{Method: "DELETE", Fn: handler.DeleteDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
-	{Method: "POST", Fn: handler.RenameDatapoint, Pattern: MustCompile(`^(` + regexName + `)/(` + regexName + `)/(` + regexName + `)$`)},
+	{Method: "GET", Fn: handler.ListDatapoints, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)/_$`)},
+	{Method: "GET", Fn: handler.GetDatapoint, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)/(` + datapointRegexName + `)$`)},
+	{Method: "PUT", Fn: handler.UpdateDatapoint, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)/(` + datapointRegexName + `)$`)},
+	{Method: "DELETE", Fn: handler.DeleteDatapoint, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)/(` + datapointRegexName + `)$`)},
+	{Method: "POST", Fn: handler.RenameDatapoint, Pattern: MustCompile(`^(` + projectRegexName + `)/(` + subsystemRegexName + `)/(` + datapointRegexName + `)$`)},
 
 	// Import API
 	{Method: "POST", Fn: handler.ImportLink2WebFvc1, Pattern: MustCompile(`^/_import/fvc1$`)},
