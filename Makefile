@@ -1,7 +1,10 @@
 lint:
 	~/go/bin/golangci-lint run
+
+	
 build:
-	go build -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
+	export NODE_OPTIONS=--openssl-legacy-provider && npm run dev
+	docker build --pull --rm -f "backend-build.Dockerfile" -t sensetifdatasourceplugin:latest --output dist "."
 
 clean:
 	rm -rf dist/*
