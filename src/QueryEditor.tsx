@@ -1,10 +1,10 @@
+import { getBackendSrv } from '@grafana/runtime';
 import React, { PureComponent } from 'react';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { Select } from '@grafana/ui';
 
 import { DataSource } from './datasource';
 import { defaultQuery, SensetifDataSourceOptions, SensetifQuery } from './types';
-import { getBackendSrv } from '@grafana/runtime';
 import { defaults } from 'lodash';
 
 export const API_RESOURCES = '/api/plugins/sensetif-datasource/resources/';
@@ -66,8 +66,10 @@ export class QueryEditor extends PureComponent<Props, State> {
 
   onQueryProjectChange = async (name: string) => {
     const { onChange, query } = this.props;
-
     onChange({ ...query, project: name, subsystem: '', datapoint: '' });
+    if (name.indexOf("$")) {
+      return;
+    }
 
     const subsystems = await this.loadSubsystems(name);
     this.setState({
@@ -78,10 +80,11 @@ export class QueryEditor extends PureComponent<Props, State> {
 
   onQuerySubsystemChange = async (name: string) => {
     const { onChange, query } = this.props;
-    const datapoints = await this.loadDatapoints(query.project, name);
-
     onChange({ ...query, subsystem: name, datapoint: '' });
-
+    if (name.indexOf("$")) {
+      return;
+    }
+    const datapoints = await this.loadDatapoints(query.project, name);
     this.setState({
       datapoints: datapoints,
     });
