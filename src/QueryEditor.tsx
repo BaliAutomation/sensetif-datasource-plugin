@@ -67,7 +67,7 @@ export class QueryEditor extends PureComponent<Props, State> {
   onQueryProjectChange = async (name: string) => {
     const { onChange, query } = this.props;
     onChange({ ...query, project: name, subsystem: '', datapoint: '' });
-    if (name.indexOf("$")) {
+    if (name.indexOf('$')) {
       return;
     }
 
@@ -81,7 +81,7 @@ export class QueryEditor extends PureComponent<Props, State> {
   onQuerySubsystemChange = async (name: string) => {
     const { onChange, query } = this.props;
     onChange({ ...query, subsystem: name, datapoint: '' });
-    if (name.indexOf("$")) {
+    if (name.indexOf('$')) {
       return;
     }
     const datapoints = await this.loadDatapoints(query.project, name);
