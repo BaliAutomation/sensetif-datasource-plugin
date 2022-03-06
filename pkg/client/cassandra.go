@@ -226,13 +226,16 @@ func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.Datapoi
 	// project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web
 	var ttnv3 model.Ttnv3Datasource
 	var web model.WebDatasource
-	err := scanner.Scan(&r.Project, &r.Subsystem, &r.Name, &r.Interval, &r.SourceType, &r.TimeToLive, &r.Proc, &ttnv3, &web)
+	var mqtt model.MqttDatasource
+	err := scanner.Scan(&r.Project, &r.Subsystem, &r.Name, &r.Interval, &r.SourceType, &r.TimeToLive, &r.Proc, &ttnv3, &web, &mqtt)
 	if err == nil {
 		switch r.SourceType {
 		case model.Web:
 			r.Datasource = web
 		case model.Ttnv3:
 			r.Datasource = ttnv3
+		case model.Mqtt:
+			r.Datasource = mqtt
 		}
 	}
 	if err != nil {
@@ -281,9 +284,9 @@ const subsystemsQuery = "SELECT name,title,location FROM %s.%s WHERE orgid = ? A
 
 const datapointsTablename = "datapoints"
 
-const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ? AND DELETED = '1970-01-01 0:00:00+0000' ALLOW FILTERING;"
+const datapointQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web,mqtt FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND name = ? AND DELETED = '1970-01-01 0:00:00+0000' ALLOW FILTERING;"
 
-const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND DELETED = '1970-01-01 0:00:00+0000' ALLOW FILTERING;"
+const datapointsQuery = "SELECT project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web,mqtt FROM %s.%s WHERE orgid = ? AND project = ? AND subsystem = ? AND DELETED = '1970-01-01 0:00:00+0000' ALLOW FILTERING;"
 
 const planlimitsQuery = "SELECT orgid,created,maxdatapoints,maxstorage,minpollinterval FROM  %s.%s WHERE orgid = 5 AND deleted = '1970-01-01 00:00:00.000000+0000' ALLOW FILTERING;"
 
