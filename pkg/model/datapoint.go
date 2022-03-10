@@ -96,7 +96,7 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 }
 
 func Float64frombytes(bytes []byte) float64 {
-	bits := binary.LittleEndian.Uint64(bytes)
+	bits := binary.BigEndian.Uint64(bytes)
 	float := math.Float64frombits(bits)
 	return float
 }
