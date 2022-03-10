@@ -39,6 +39,7 @@ type Processing struct {
 }
 
 func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	log.DefaultLogger.Info(fmt.Sprintf("Type: %d, %+v: "+info.Custom(), info.Type(), info))
 	switch name {
 	case "unit":
 		d := string(data)
