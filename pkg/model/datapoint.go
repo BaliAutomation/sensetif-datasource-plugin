@@ -1,7 +1,9 @@
 package model
 
 import (
+	"fmt"
 	"github.com/gocql/gocql"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"strconv"
 )
 
@@ -69,12 +71,14 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 		}
 	case "k":
 		d := string(data)
+		log.DefaultLogger.Info(fmt.Sprintf("k: " + d))
 		f, err := strconv.ParseFloat(d, 64)
 		if err == nil {
 			p.K = f
 		}
 	case "m":
 		d := string(data)
+		log.DefaultLogger.Info(fmt.Sprintf("m: " + d))
 		f, err := strconv.ParseFloat(d, 64)
 		if err == nil {
 			p.M = f
