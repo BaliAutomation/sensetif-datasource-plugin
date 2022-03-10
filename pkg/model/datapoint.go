@@ -1,9 +1,9 @@
 package model
 
 import (
-	"fmt"
+	"encoding/binary"
 	"github.com/gocql/gocql"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"math"
 	"strconv"
 )
 
@@ -39,7 +39,6 @@ type Processing struct {
 }
 
 func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
-	log.DefaultLogger.Info(fmt.Sprintf("Type: %d, %+v: "+info.Custom(), info.Type(), info))
 	switch name {
 	case "unit":
 		d := string(data)
@@ -71,19 +70,9 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 			p.Scaling = FtoK
 		}
 	case "k":
-		d := string(data)
-		log.DefaultLogger.Info(fmt.Sprintf("k: " + d))
-		f, err := strconv.ParseFloat(d, 64)
-		if err == nil {
-			p.K = f
-		}
+		p.K = Float64frombytes(data)
 	case "m":
-		d := string(data)
-		log.DefaultLogger.Info(fmt.Sprintf("m: " + d))
-		f, err := strconv.ParseFloat(d, 64)
-		if err == nil {
-			p.M = f
-		}
+		p.M = Float64frombytes(data)
 	case "min":
 		d := string(data)
 		f, err := strconv.ParseFloat(d, 64)
@@ -104,6 +93,12 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 		p.ScaleFunc = d
 	}
 	return nil
+}
+
+func Float64frombytes(bytes []byte) float64 {
+	bits := binary.LittleEndian.Uint64(bytes)
+	float := math.Float64frombits(bits)
+	return float
 }
 
 type Ttnv3Datasource struct {
