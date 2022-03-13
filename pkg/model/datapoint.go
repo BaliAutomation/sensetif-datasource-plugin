@@ -2,7 +2,9 @@ package model
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/gocql/gocql"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"math"
 	"strconv"
 )
@@ -106,6 +108,7 @@ type Ttnv3Datasource struct {
 	Application      string `json:"application"`
 	Device           string `json:"device"`
 	Point            string `json:"point"`
+	Port             int16  `json:"fport"`
 	AuthorizationKey string `json:"authorizationkey"`
 }
 
@@ -119,6 +122,9 @@ func (ds *Ttnv3Datasource) UnmarshalUDT(name string, info gocql.TypeInfo, data [
 		ds.Device = string(data)
 	case "point":
 		ds.Point = string(data)
+	case "port":
+		log.DefaultLogger.Info(fmt.Sprintf("Port: %+v", data))
+		ds.Port = int16(data[0]) + int16(data[1])*256
 	case "authorizationkey":
 		ds.AuthorizationKey = string(data)
 	}
