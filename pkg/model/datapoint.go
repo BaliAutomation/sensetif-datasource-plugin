@@ -207,10 +207,10 @@ type MqttDatasource struct {
 	Topic               string               `json:"topic"`
 	Username            string               `json:"username"`
 	Password            string               `json:"password"`
-	Format              OriginDocumentFormat `json:"doctype"`
-	ValueExpression     string               `json:"dataexpr"`
-	TimestampType       TimestampType        `json:"tstype"`
-	TimestampExpression string               `json:"tsexpr"`
+	Format              OriginDocumentFormat `json:"format"`
+	ValueExpression     string               `json:"valueExpression"`
+	TimestampType       TimestampType        `json:"timestampType"`
+	TimestampExpression string               `json:"timestampExpression"`
 }
 
 func (ds *MqttDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
@@ -251,7 +251,7 @@ func (ds *MqttDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []
 		ds.Username = string(data)
 	case "password":
 		ds.Password = string(data)
-	case "doctype":
+	case "format":
 		t := string(data)
 		switch {
 		case t == "jsondoc":
@@ -259,9 +259,9 @@ func (ds *MqttDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []
 		case t == "xmldoc":
 			ds.Format = XML
 		}
-	case "dataexpr":
+	case "valueExpression":
 		ds.ValueExpression = string(data)
-	case "tstype":
+	case "timestampType":
 		t := string(data)
 		switch {
 		case t == "polltime":
@@ -275,7 +275,7 @@ func (ds *MqttDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []
 		case t == "iso8601_offset":
 			ds.TimestampType = ISO8601_offset
 		}
-	case "tsexpr":
+	case "timestampExpression":
 		ds.TimestampExpression = string(data)
 	}
 	return nil
