@@ -10,7 +10,7 @@ require (
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
-	github.com/frankban/quicktest v1.14.0 // indirect
+	github.com/frankban/quicktest v1.14.2 // indirect
 	github.com/gocql/gocql v0.0.0-20210425135552-909f2a77f46e // newest version doesn't resolve inside Goland, but does from Make. Weird!
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.129.0

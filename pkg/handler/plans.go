@@ -22,11 +22,11 @@ type SubscriptionInfo struct {
 	Amount          int64                               `json:"amount"`
 	Currency        stripe.Currency                     `json:"currency"`
 	Subscription    string                              `json:"subscription"`
-	CheckoutSession string                              `json:"checkout_session"`
+	CheckoutSession string                              `json:"checkoutSession"`
 	Success         bool                                `json:"success"`
 	Customer        string                              `json:"customer"`
 	Email           string                              `json:"email"`
-	PaymentStatus   stripe.CheckoutSessionPaymentStatus `json:"payment_status"`
+	PaymentStatus   stripe.CheckoutSessionPaymentStatus `json:"paymentStatus"`
 }
 
 type SessionProxy struct {
@@ -57,7 +57,9 @@ func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Cl
 
 	productPrices := map[string][]stripe.Price{}
 	for _, prize := range clients.Stripe.Prices {
-		productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
+		if prize.Active {
+			productPrices[prize.Product.ID] = append(productPrices[prize.Product.ID], prize)
+		}
 	}
 	p, _ := json.Marshal(productPrices)
 	log.DefaultLogger.Info(fmt.Sprintf("Plans: %s", p))

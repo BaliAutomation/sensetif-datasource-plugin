@@ -27,21 +27,9 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 	} else {
 		log.DefaultLogger.Info(fmt.Sprintf("Partitions of %s : %+v", topic, parts))
 	}
-	producer := p.producers[topic]
+	producer := p.getOrCreateProducer(topic)
 	if producer == nil {
-		var err error
-		options := pulsar.ProducerOptions{
-			Topic:           topic,
-			DisableBatching: true,
-		}
-		producer, err = p.client.CreateProducer(options)
-		if err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, err))
-			return ""
-		} else {
-			log.DefaultLogger.Info(fmt.Sprintf("Created a new producer for topic %s", topic))
-		}
-		p.producers[topic] = producer
+		return ""
 	}
 	message := &pulsar.ProducerMessage{
 		Payload: value,
@@ -54,6 +42,26 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 		log.DefaultLogger.Info(fmt.Sprintf("Sent message on topic %s with key %s. Id: %s. Data: %+v\n", producer.Topic(), message.Key, msgId, string(message.Payload)))
 	}
 	return string(msgId.Serialize())
+}
+
+func (p *PulsarClient) getOrCreateProducer(topic string) pulsar.Producer {
+	producer := p.producers[topic]
+	if producer == nil {
+		var err error
+		options := pulsar.ProducerOptions{
+			Topic:           topic,
+			DisableBatching: true,
+		}
+		producer, err = p.client.CreateProducer(options)
+		if err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, err))
+			return nil
+		} else {
+			log.DefaultLogger.Info(fmt.Sprintf("Created a new producer for topic %s", topic))
+		}
+		p.producers[topic] = producer
+	}
+	return producer
 }
 
 func (p *PulsarClient) InitializePulsar(pulsarHosts string, clientId string) {

@@ -22,6 +22,10 @@ rm -rf dist 2>/dev/null
 # go build -ldflags "-linkmode external -extldflags -static" -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
 go build -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
 yarn build || exit 1
+
+export GRAFANA_API_KEY=eyJrIjoiMzkwNTNkZTgxZTA4ODBjY2Q2YTIwNzg1NzBjZDAyOTNjOGNkZDU3OCIsIm4iOiJQdWJsaXNoIEtleSIsImlkIjo0OTA0MDZ9
+npx @grafana/toolkit plugin:sign --rootUrls https://sensetif.net/
+
 mkdir sensetif-datasource
 cp -r dist/* sensetif-datasource
 tar cf sensetif-datasource_$VERSION.tar.gz sensetif-datasource

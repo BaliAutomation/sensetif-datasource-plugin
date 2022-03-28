@@ -59,13 +59,13 @@ func DeleteDatapoint(orgId int64, params []string, _ []byte, clients *client.Cli
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
 	key := "deleteDatapoint:1:" + strconv.FormatInt(orgId, 10)
-	datapoint, err := GetDatapoint(orgId, params, nil, clients)
-	if err != nil {
-		return datapoint, err
+	fetched, err := GetDatapoint(orgId, params, nil, clients)
+	if err != nil || fetched.Status != 200 {
+		return fetched, err
 	}
-	body, err := json.Marshal(datapoint)
+	datapoint, err := json.Marshal(fetched.Body)
 	if err == nil {
-		clients.Pulsar.Send(model.ConfigurationTopic, key, body)
+		clients.Pulsar.Send(model.ConfigurationTopic, key, datapoint)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil

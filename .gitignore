@@ -28,6 +28,7 @@ artifacts/
 work/
 ci/
 e2e-results/
+pulsar/
 
 # Editor
 .idea

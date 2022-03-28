@@ -1,7 +1,9 @@
 package model
 
 import (
+	"encoding/binary"
 	"github.com/gocql/gocql"
+	"math"
 	"strconv"
 )
 
@@ -22,7 +24,7 @@ type DatapointSettings struct {
 	Proc       Processing   `json:"proc"`
 	TimeToLive TimeToLive   `json:"timeToLive"`
 	SourceType SourceType   `json:"datasourcetype"`
-	Datasource interface{}  `json:"datasource"` // either a Ttnv3Datasource or a WebDatasource depending on SourceType
+	Datasource interface{}  `json:"datasource"` // either a Ttnv3Datasource or a WebDatasource or a MqttDatasource depending on SourceType
 }
 
 type Processing struct {
@@ -68,17 +70,9 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 			p.Scaling = FtoK
 		}
 	case "k":
-		d := string(data)
-		f, err := strconv.ParseFloat(d, 64)
-		if err == nil {
-			p.K = f
-		}
+		p.K = Float64frombytes(data)
 	case "m":
-		d := string(data)
-		f, err := strconv.ParseFloat(d, 64)
-		if err == nil {
-			p.M = f
-		}
+		p.M = Float64frombytes(data)
 	case "min":
 		d := string(data)
 		f, err := strconv.ParseFloat(d, 64)
@@ -101,11 +95,18 @@ func (p *Processing) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte)
 	return nil
 }
 
+func Float64frombytes(bytes []byte) float64 {
+	bits := binary.BigEndian.Uint64(bytes)
+	float := math.Float64frombits(bits)
+	return float
+}
+
 type Ttnv3Datasource struct {
 	Zone             string `json:"zone"`
 	Application      string `json:"application"`
 	Device           string `json:"device"`
 	Point            string `json:"point"`
+	Port             int32  `json:"fport"`
 	AuthorizationKey string `json:"authorizationkey"`
 }
 
@@ -119,6 +120,9 @@ func (ds *Ttnv3Datasource) UnmarshalUDT(name string, info gocql.TypeInfo, data [
 		ds.Device = string(data)
 	case "point":
 		ds.Point = string(data)
+	case "port":
+		value := binary.BigEndian.Uint32(data)
+		ds.Port = int32(value)
 	case "authorizationkey":
 		ds.AuthorizationKey = string(data)
 	}
@@ -187,9 +191,104 @@ func (ds *WebDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []b
 	return nil
 }
 
+type MqttProtocol string
+
+const (
+	mqtt  MqttProtocol = "mqtt"
+	mqtts MqttProtocol = "mqtts"
+	tcp   MqttProtocol = "tcp"
+	tls   MqttProtocol = "tls"
+	ws    MqttProtocol = "ws"
+	wss   MqttProtocol = "wss"
+	wxs   MqttProtocol = "wxs"
+	alis  MqttProtocol = "alis"
+)
+
+type MqttDatasource struct {
+	Protocol            MqttProtocol         `json:"protocol"`
+	Address             string               `json:"address"`
+	Port                uint16               `json:"port"`
+	Topic               string               `json:"topic"`
+	Username            string               `json:"username"`
+	Password            string               `json:"password"`
+	Format              OriginDocumentFormat `json:"format"`
+	ValueExpression     string               `json:"valueExpression"`
+	TimestampType       TimestampType        `json:"timestampType"`
+	TimestampExpression string               `json:"timestampExpression"`
+}
+
+func (ds *MqttDatasource) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	switch name {
+	case "protocol":
+		p := string(data)
+		switch p {
+		case "mqtt":
+			ds.Protocol = mqtt
+		case "mqtts":
+			ds.Protocol = mqtts
+		case "tcp":
+			ds.Protocol = tcp
+		case "tls":
+			ds.Protocol = tls
+		case "ws":
+			ds.Protocol = ws
+		case "wss":
+			ds.Protocol = wss
+		case "wxs":
+			ds.Protocol = wxs
+		case "alis":
+			ds.Protocol = alis
+		}
+	case "address":
+		ds.Address = string(data)
+	case "port":
+		d := string(data)
+		f, err := strconv.ParseInt(d, 10, 32)
+		if err == nil {
+			ds.Port = uint16(f)
+		} else {
+			ds.Port = 1883
+		}
+	case "topic":
+		ds.Topic = string(data)
+	case "username":
+		ds.Username = string(data)
+	case "password":
+		ds.Password = string(data)
+	case "format":
+		t := string(data)
+		switch {
+		case t == "jsondoc":
+			ds.Format = JSON
+		case t == "xmldoc":
+			ds.Format = XML
+		}
+	case "valueExpression":
+		ds.ValueExpression = string(data)
+	case "timestampType":
+		t := string(data)
+		switch {
+		case t == "polltime":
+			ds.TimestampType = PollTime
+		case t == "epochMillis":
+			ds.TimestampType = EpochMillis
+		case t == "epochSeconds":
+			ds.TimestampType = EpochSeconds
+		case t == "iso8601_zoned":
+			ds.TimestampType = ISO8601_zoned
+		case t == "iso8601_offset":
+			ds.TimestampType = ISO8601_offset
+		}
+	case "timestampExpression":
+		ds.TimestampExpression = string(data)
+	}
+	return nil
+}
+
 type SourceType string
 
 const (
 	Web   SourceType = "web"   // Web documents
 	Ttnv3 SourceType = "ttnv3" // The Things Network v3
+	Mqtt  SourceType = "mqtt"  // MQTT client
 )
