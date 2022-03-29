@@ -47,8 +47,10 @@ func UpdateProject(orgId int64, params []string, body []byte, clients *client.Cl
 	key := "updateProject:1:" + strconv.FormatInt(orgId, 10)
 	log.DefaultLogger.Info(fmt.Sprintf("%+v", *clients.Pulsar))
 	clients.Pulsar.Send(model.ConfigurationTopic, key, body)
+	rawJson, _ := json.Marshal("ok")
 	return &backend.CallResourceResponse{
-		Status: http.StatusAccepted,
+		Status: http.StatusOK,
+		Body:   rawJson,
 	}, nil
 }
 
