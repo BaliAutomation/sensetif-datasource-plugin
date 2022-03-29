@@ -22,9 +22,8 @@ func ListProjects(orgId int64, params []string, body []byte, clients *client.Cli
 		return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
 	}
 	return &backend.CallResourceResponse{
-		Status:  http.StatusOK,
-		Headers: make(map[string][]string),
-		Body:    rawJson,
+		Status: http.StatusOK,
+		Body:   rawJson,
 	}, nil
 }
 
@@ -47,11 +46,9 @@ func UpdateProject(orgId int64, params []string, body []byte, clients *client.Cl
 	log.DefaultLogger.Info("UpdateProject()")
 	key := "updateProject:1:" + strconv.FormatInt(orgId, 10)
 	log.DefaultLogger.Info(fmt.Sprintf("%+v", *clients.Pulsar))
-	msgId := clients.Pulsar.Send(model.ConfigurationTopic, key, body)
-	log.DefaultLogger.Info(fmt.Sprintf("Sent Message: %s", msgId))
+	clients.Pulsar.Send(model.ConfigurationTopic, key, body)
 	return &backend.CallResourceResponse{
-		Status: http.StatusOK,
-		Body:   []byte("{ \"msgId\": \"" + msgId + "\""),
+		Status: http.StatusAccepted,
 	}, nil
 }
 

@@ -18,18 +18,18 @@ type PulsarClient struct {
 	producers map[string]pulsar.Producer
 }
 
-func (p *PulsarClient) Send(topic string, key string, value []byte) string {
+func (p *PulsarClient) Send(topic string, key string, value []byte) pulsar.MessageID {
 	topic = model.Namespace + "/" + topic
 	parts, e := p.client.TopicPartitions(topic)
 	if e != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, e))
-		return ""
+		return nil
 	} else {
 		log.DefaultLogger.Info(fmt.Sprintf("Partitions of %s : %+v", topic, parts))
 	}
 	producer := p.getOrCreateProducer(topic)
 	if producer == nil {
-		return ""
+		return nil
 	}
 	message := &pulsar.ProducerMessage{
 		Payload: value,
@@ -41,7 +41,7 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 	} else {
 		log.DefaultLogger.Info(fmt.Sprintf("Sent message on topic %s with key %s. Id: %s. Data: %+v\n", producer.Topic(), message.Key, msgId, string(message.Payload)))
 	}
-	return "ok"
+	return msgId
 }
 
 func (p *PulsarClient) getOrCreateProducer(topic string) pulsar.Producer {
