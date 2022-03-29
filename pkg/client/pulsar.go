@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	JSON "encoding/json"
 	"fmt"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/apache/pulsar-client-go/pulsar"
@@ -41,7 +42,9 @@ func (p *PulsarClient) Send(topic string, key string, value []byte) string {
 	} else {
 		log.DefaultLogger.Info(fmt.Sprintf("Sent message on topic %s with key %s. Id: %s. Data: %+v\n", producer.Topic(), message.Key, msgId, string(message.Payload)))
 	}
-	return string(msgId.Serialize())
+	var bytes []byte
+	bytes, err = JSON.Marshal(msgId.Serialize())
+	return string(bytes)
 }
 
 func (p *PulsarClient) getOrCreateProducer(topic string) pulsar.Producer {
