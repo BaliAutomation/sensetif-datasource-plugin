@@ -17,7 +17,6 @@ func ListDatapoints(orgId int64, params []string, body []byte, clients *client.C
 	if len(params) < 3 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
-
 	datapoints := clients.Cassandra.FindAllDatapoints(orgId, params[1], params[2])
 	rawJson, err := json.Marshal(datapoints)
 	if err != nil {
@@ -34,7 +33,6 @@ func GetDatapoint(orgId int64, params []string, _ []byte, clients *client.Client
 	if len(params) < 4 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
-
 	datapoint := clients.Cassandra.GetDatapoint(orgId, params[1], params[2], params[3])
 	bytes, err := json.Marshal(datapoint)
 	if err != nil {
@@ -58,14 +56,11 @@ func DeleteDatapoint(orgId int64, params []string, _ []byte, clients *client.Cli
 	if len(params) < 4 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
-	key := "deleteDatapoint:1:" + strconv.FormatInt(orgId, 10)
-	fetched, err := GetDatapoint(orgId, params, nil, clients)
-	if err != nil || fetched.Status != 200 {
-		return fetched, err
-	}
-	datapoint, err := json.Marshal(fetched.Body)
+	datapoint := clients.Cassandra.GetDatapoint(orgId, params[1], params[2], params[3])
+	bytes, err := json.Marshal(datapoint)
 	if err == nil {
-		clients.Pulsar.Send(model.ConfigurationTopic, key, datapoint)
+		key := "deleteDatapoint:1:" + strconv.FormatInt(orgId, 10)
+		clients.Pulsar.Send(model.ConfigurationTopic, key, bytes)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
 		}, nil
