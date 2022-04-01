@@ -11,7 +11,8 @@ type PlanSettings struct {
 }
 
 type PlanLimits struct {
-	MaxStorage      string `json:"maxStorage"`
-	MaxDatapoints   uint64 `json:"maxDatapoints"`
-	MinPollInterval string `json:"minPollInterval"`
+	MaxStorage      string   `json:"maxStorage"`
+	MaxDatapoints   uint64   `json:"maxDatapoints"`
+	MinPollInterval string   `json:"minPollInterval"`
+	Permissions     []string `json:"permissions"`
 }
