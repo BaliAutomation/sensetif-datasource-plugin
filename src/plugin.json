@@ -6,6 +6,7 @@
   "id": "sensetif-datasource",
   "metrics": true,
   "backend": true,
+  "streaming": true,
   "executable": "gpx_sensetif-datasource",
   "info": {
     "description": "Sensetif Datasource for sensor timeseries data",

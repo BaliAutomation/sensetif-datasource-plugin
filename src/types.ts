@@ -4,12 +4,16 @@ export interface SensetifQuery extends DataQuery {
   project: string;
   subsystem: string;
   datapoint: string;
+
+  channel?: string;
 }
 
 export const defaultQuery: Partial<SensetifQuery> = {
   project: '',
   subsystem: '',
   datapoint: '',
+
+  channel: 'sensetif-channel-default',
 };
 
 export interface SensetifDataSourceOptions extends DataSourceJsonData {

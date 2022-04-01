@@ -27,7 +27,12 @@ func main() {
 	}
 
 	ds := createDatasource(&cassandraClient, cassandraHosts)
-	startServing(ds, &resourceHandler)
+	sh := createStreamHandler()
+	startServing(ds, &resourceHandler, &sh)
+}
+
+func createStreamHandler() streamHandler {
+	return streamHandler{}
 }
 
 func createCassandraClient() ([]string, client.CassandraClient) {
@@ -73,13 +78,14 @@ func stripeAuthKey() string {
 	return "sk_test_51JZvsFBil9jp3I2LySc7piIiEpXUlDdcxpXdVERSLL10nv2AUM1dfoCjSAZIMJ2XlC8zK1tkxJw85F2KlkBh9mxE00Vne8Kp5Z"
 }
 
-func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler) {
+func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler, streamHandler *streamHandler) {
 	log.DefaultLogger.Info("startServing()")
 	log.DefaultLogger.Info("Pulsar Client: " + fmt.Sprintf("%+v", resourceHandler.Clients.Pulsar))
 	serveOpts := datasource.ServeOpts{
 		CallResourceHandler: resourceHandler,
 		QueryDataHandler:    &ds,
 		CheckHealthHandler:  &ds,
+		StreamHandler:       streamHandler,
 	}
 
 	err := datasource.Serve(serveOpts)
