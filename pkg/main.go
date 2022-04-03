@@ -27,12 +27,14 @@ func main() {
 	}
 
 	ds := createDatasource(&cassandraClient, cassandraHosts)
-	sh := createStreamHandler()
+	sh := createStreamHandler(&pulsarClient)
 	startServing(ds, &resourceHandler, &sh)
 }
 
-func createStreamHandler() streamHandler {
-	return streamHandler{}
+func createStreamHandler(pulsar *client.PulsarClient) streamHandler {
+	return streamHandler{
+		receiver: pulsar,
+	}
 }
 
 func createCassandraClient() ([]string, client.CassandraClient) {
@@ -117,10 +119,10 @@ func cassandraHosts() []string {
 func pulsarHost() string {
 	log.DefaultLogger.Info("pulsarHost()")
 	if hosts, ok := os.LookupEnv("PULSAR_HOSTS"); ok {
-		//hosts = strings.TrimPrefix(hosts, "pulsar://")
-		//hostarray := strings.Split(hosts, ",")
-		//log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hostarray[0]))
-		//return "pulsar://" + hostarray[0]
+		// hosts = strings.TrimPrefix(hosts, "pulsar://")
+		// hostarray := strings.Split(hosts, ",")
+		// log.DefaultLogger.Info(fmt.Sprintf("Found Pulsar Hosts:%s", hostarray[0]))
+		// return "pulsar://" + hostarray[0]
 		return hosts
 	}
 	return "pulsar://192.168.255.38:6650" // Default at Niclas' lab

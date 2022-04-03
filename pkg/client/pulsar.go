@@ -3,15 +3,12 @@ package client
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"time"
 )
-
-type Pulsar interface {
-	Send(topic string, key string, value []byte)
-}
 
 type PulsarClient struct {
 	client    pulsar.Client
@@ -62,6 +59,10 @@ func (p *PulsarClient) getOrCreateProducer(topic string) pulsar.Producer {
 		p.producers[topic] = producer
 	}
 	return producer
+}
+
+func (p *PulsarClient) Subscribe(options pulsar.ConsumerOptions) (pulsar.Consumer, error) {
+	return p.client.Subscribe(options)
 }
 
 func (p *PulsarClient) InitializePulsar(pulsarHosts string, clientId string) {
