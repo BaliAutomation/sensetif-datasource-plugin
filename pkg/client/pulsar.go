@@ -16,7 +16,7 @@ type PulsarClient struct {
 }
 
 func (p *PulsarClient) Send(topic string, key string, value []byte) pulsar.MessageID {
-	topic = model.Namespace + "/" + topic
+	topic = model.MainNamespace + "/" + topic
 	parts, e := p.client.TopicPartitions(topic)
 	if e != nil {
 		log.DefaultLogger.Error(fmt.Sprintf("Failed to create a producer for topic %s - Error=%+v", topic, e))
@@ -61,10 +61,6 @@ func (p *PulsarClient) getOrCreateProducer(topic string) pulsar.Producer {
 	return producer
 }
 
-func (p *PulsarClient) Subscribe(options pulsar.ConsumerOptions) (pulsar.Consumer, error) {
-	return p.client.Subscribe(options)
-}
-
 func (p *PulsarClient) InitializePulsar(pulsarHosts string, clientId string) {
 	p.producers = make(map[string]pulsar.Producer)
 	var err error
@@ -80,4 +76,9 @@ func (p *PulsarClient) InitializePulsar(pulsarHosts string, clientId string) {
 		log.DefaultLogger.Info(fmt.Sprintf("Connecting %s to Pulsar cluster %s.", clientId, pulsarHosts))
 	}
 	defer p.client.Close()
+}
+
+func (p *PulsarClient) Subscribe(options pulsar.ConsumerOptions) (*pulsar.Consumer, error) {
+	consumer, err := p.client.Subscribe(options)
+	return &consumer, err
 }

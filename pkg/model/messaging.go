@@ -2,7 +2,9 @@ package model
 
 const Tenant = "sensetif"
 
-const Namespace = Tenant + "/main"
+const MainNamespace = Tenant + "/main"
+
+const ErrorNamespace = Tenant + "/errors"
 
 const ConfigurationTopic = "configurations"
 
@@ -10,7 +12,7 @@ const PaymentsTopic = "payments"
 
 const PaymentErrorTopic = "payment_errors"
 
-const ErrorsTopic = "exceptions"
+const ErrorsTopic = "errors-"
 
 const MessagingTopic = "messaging"
 

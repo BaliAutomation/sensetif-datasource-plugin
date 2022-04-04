@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
@@ -31,9 +32,11 @@ func main() {
 	startServing(ds, &resourceHandler, &sh)
 }
 
-func createStreamHandler(pulsar *client.PulsarClient) streamHandler {
+func createStreamHandler(pulsarClient *client.PulsarClient) streamHandler {
 	return streamHandler{
-		receiver: pulsar,
+		pulsar:      pulsarClient,
+		consumers:   make(map[int64]*pulsar.Consumer),
+		subscribers: make(map[int64][]chan *pulsar.ConsumerMessage),
 	}
 }
 
