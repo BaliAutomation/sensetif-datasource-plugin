@@ -36,7 +36,7 @@ func createStreamHandler(pulsarClient *client.PulsarClient) streamHandler {
 	return streamHandler{
 		pulsar:      pulsarClient,
 		consumers:   make(map[int64]*pulsar.Consumer),
-		subscribers: make(map[int64][]chan *pulsar.ConsumerMessage),
+		subscribers: make(map[int64][]*chan *pulsar.ConsumerMessage),
 	}
 }
 

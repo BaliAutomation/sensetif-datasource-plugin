@@ -22,8 +22,8 @@ type streamHandler struct {
 	subscribers map[int64][]*chan *pulsar.ConsumerMessage
 }
 
-// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
 func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
+	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
 	if req.Path == "errors" {
 		orgId := req.PluginContext.OrgID
 		organization := strconv.FormatInt(orgId, 10)
@@ -64,9 +64,9 @@ func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.Subscrib
 		go func() {
 			select {
 			case msg := <-pulsarChannel:
-				var ch chan *pulsar.ConsumerMessage
-				for ch = range subscribers {
-					ch <- &msg
+				var ch *chan *pulsar.ConsumerMessage
+				for _, ch = range subscribers {
+					*ch <- &msg
 				}
 			}
 		}()
@@ -80,7 +80,7 @@ func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.Subscrib
 	}, nil
 }
 
-func (h *streamHandler) PublishStream(_ context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
+func (h *streamHandler) PublishStream(_ context.Context, _ *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
