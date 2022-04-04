@@ -12,4 +12,6 @@ const PaymentErrorTopic = "payment_errors"
 
 const ErrorsTopic = "exceptions"
 
+const MessagingTopic = "messaging"
+
 const GlobalKey = "0"

@@ -3,15 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"time"
 
+	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
+type pulsarReceiver interface {
+	Subscribe(options pulsar.ConsumerOptions) (pulsar.Consumer, error)
+}
+
 type streamHandler struct {
+	receiver pulsarReceiver
 }
 
 // SubscribeStream called when a user tries to subscribe to a plugin/datasource
@@ -48,46 +54,44 @@ func (h *streamHandler) PublishStream(ctx context.Context, req *backend.PublishS
 // the call will be terminated until next active subscriber appears. Call termination
 // can happen with a delay.
 func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	walker := rand.Float64() * 100
+	log.DefaultLogger.Info("RunStream")
+	consumer, err := h.receiver.Subscribe(pulsar.ConsumerOptions{
+		SubscriptionName: "test-sub-1",
+		Topic:            model.Namespace + "/" + model.MessagingTopic,
+	})
+	if err != nil {
+		log.DefaultLogger.Error(fmt.Sprintf("failed to create pulsar consumer err: %v", err))
+		return err
+	}
+	log.DefaultLogger.Info("created consumer")
+
+	msgChannel := consumer.Chan()
 
 	labelFrame := data.NewFrame("labeled",
 		data.NewField("labels", nil, make([]string, 2)),
 		data.NewField("Time", nil, make([]time.Time, 2)),
-		data.NewField("Value", nil, make([]float64, 2)),
+		data.NewField("Value", nil, make([]string, 2)),
 	)
-
-	rand.Seed(time.Now().UnixNano())
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			log.DefaultLogger.Debug("-- ctx error --")
+		case ctxErr := <-ctx.Done():
+			log.DefaultLogger.Warn(fmt.Sprintf("Ctx error: %v", ctxErr))
 			return ctx.Err()
 
-		case t := <-ticker.C:
-			log.DefaultLogger.Info(fmt.Sprintf("-- sending new frame --"))
+		case msg := <-msgChannel:
+			log.DefaultLogger.Info("Received msg: %s", msg.Payload())
 
-			secA := t.Second() / 3
-			secB := t.Second() / 7
+			labelFrame.Fields[0].Set(0, fmt.Sprintf("s=A,s=p%d,x=X", 1))
+			labelFrame.Fields[1].Set(0, time.Now())
+			labelFrame.Fields[2].Set(0, string(msg.Payload()))
 
-			labelFrame.Fields[0].Set(0, fmt.Sprintf("s=A,s=p%d,x=X", secA))
-			labelFrame.Fields[1].Set(0, t)
-			labelFrame.Fields[2].Set(0, walker)
-
-			labelFrame.Fields[0].Set(1, fmt.Sprintf("s=B,s=p%d,x=X", secB))
-			labelFrame.Fields[1].Set(1, t)
-			labelFrame.Fields[2].Set(1, walker+10)
-
-			log.DefaultLogger.Info("Frame: %v", *labelFrame)
-			// Send frame to stream including both frame schema and data frame parts.
 			err := sender.SendFrame(labelFrame, data.IncludeAll)
 			if err != nil {
-				log.DefaultLogger.Warn(fmt.Sprintf("err sending frame:: %v", err))
+				log.DefaultLogger.Warn(fmt.Sprintf("Couldn't send frame: %v", err))
 				return err
 			}
+			log.DefaultLogger.Info("Sent frame: %v")
 		}
 	}
 }
