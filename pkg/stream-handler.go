@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
+	"github.com/apache/pulsar-client-go/pulsar"
 	"net"
 	"strconv"
 	"time"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
-	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -22,6 +22,7 @@ type streamHandler struct {
 	subscribers map[int64][]*chan *pulsar.ConsumerMessage
 }
 
+// TODO: All the Pulsar specifics should be moved to PulsarClient
 func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
 	log.DefaultLogger.Info("SubscribeStream: " + req.Path)
@@ -66,10 +67,12 @@ func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.Subscrib
 		// This will never clean up. That is fine for now, but eventually that will take up too much resources.
 		go func() {
 			for {
+				log.DefaultLogger.Info("Loop Pulsar receiver.")
 				select {
 				case msg := <-pulsarChannel:
 					var ch *chan *pulsar.ConsumerMessage
 					for _, ch = range subscribers {
+						log.DefaultLogger.Info(fmt.Sprintf("Message received: (%s) %+v", organization, msg))
 						*ch <- &msg
 					}
 				}
@@ -114,8 +117,10 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	)
 
 	for {
+		log.DefaultLogger.Info("Loop Grafana sender.")
 		select {
 		case <-ctx.Done():
+			log.DefaultLogger.Info("Grafana sender: DONE")
 			index := find(h.subscribers[orgId], &channel)
 			if index >= 0 {
 				h.subscribers[orgId] = remove(h.subscribers[orgId], index)

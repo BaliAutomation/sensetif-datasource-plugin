@@ -15,6 +15,12 @@ type PulsarClient struct {
 	producers map[string]pulsar.Producer
 }
 
+func (p *PulsarClient) Partitions(topic string) []string {
+	topic = model.MainNamespace + "/" + topic
+	parts, _ := p.client.TopicPartitions(topic)
+	return parts
+}
+
 func (p *PulsarClient) Send(topic string, key string, value []byte) pulsar.MessageID {
 	topic = model.MainNamespace + "/" + topic
 	parts, e := p.client.TopicPartitions(topic)

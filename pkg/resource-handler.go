@@ -29,6 +29,9 @@ const subsystemRegexName = `[a-zA-Z][a-zA-Z0-9_.\-]*`
 const datapointRegexName = `[a-zA-Z][a-zA-Z0-9_.\-$\[\]]*`
 
 var links = []Link{
+	// Health??
+	{Method: "GET", Fn: Health, Pattern: MustCompile(`^/$`)},
+
 	// Projects API
 	{Method: "GET", Fn: handler.ListProjects, Pattern: MustCompile(`^_$`)},
 	{Method: "GET", Fn: handler.GetProject, Pattern: MustCompile(`^(` + projectRegexName + `)$`)},
@@ -94,6 +97,14 @@ func (p *ResourceHandler) CallResource(ctx context.Context, request *backend.Cal
 		}
 	}
 	return notFound("", sender)
+}
+
+func Health(_ int64, _ []string, body []byte, _ *client.Clients) (*backend.CallResourceResponse, error) {
+	body = []byte{}
+	return &backend.CallResourceResponse{
+		Status: http.StatusOK,
+		Body:   body,
+	}, nil
 }
 
 func handleFileRequests(request *backend.CallResourceRequest, sender backend.CallResourceResponseSender) (error, bool) {
