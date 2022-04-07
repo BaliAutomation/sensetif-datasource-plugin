@@ -62,12 +62,16 @@ func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.Subscrib
 		// We are creating a Go Routing that will read the Pulsar Consumer and feed the messages to
 		// all registered Go Channels. Each such Channel is serving one websocket client, i.e. a Error Reporting
 		// Tab in Grafana. I.e. We have a local fan-out of incoming Pulsar messages.
+		//
+		// This will never clean up. That is fine for now, but eventually that will take up too much resources.
 		go func() {
-			select {
-			case msg := <-pulsarChannel:
-				var ch *chan *pulsar.ConsumerMessage
-				for _, ch = range subscribers {
-					*ch <- &msg
+			for {
+				select {
+				case msg := <-pulsarChannel:
+					var ch *chan *pulsar.ConsumerMessage
+					for _, ch = range subscribers {
+						*ch <- &msg
+					}
 				}
 			}
 		}()
@@ -92,6 +96,9 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	orgId := req.PluginContext.OrgID
 	channel := make(chan *pulsar.ConsumerMessage)
 	h.subscribers[orgId] = append(h.subscribers[orgId], &channel)
+
+	// TODO: Figure out what is happening when we have multiple browser windows opened.
+	// TODO: Do we need to do something special to shut down the function that feeds the Channel?
 
 	// It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
 	// system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
