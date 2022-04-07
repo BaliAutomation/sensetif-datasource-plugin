@@ -16,6 +16,13 @@ type Datapoint interface {
 	Interval() PollInterval
 }
 
+type DatapointIdentifier struct {
+	OrgId     int64  `json:"orgId"`
+	Project   string `json:"project"`
+	Subsystem string `json:"subsystem"`
+	Datapoint string `json:"datapoint"`
+}
+
 type DatapointSettings struct {
 	Project    string       `json:"project"`
 	Subsystem  string       `json:"subsystem"`

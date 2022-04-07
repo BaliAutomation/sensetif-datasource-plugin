@@ -56,10 +56,15 @@ func DeleteDatapoint(orgId int64, params []string, _ []byte, clients *client.Cli
 	if len(params) < 4 {
 		return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
 	}
-	datapoint := clients.Cassandra.GetDatapoint(orgId, params[1], params[2], params[3])
+	datapoint := model.DatapointIdentifier{
+		OrgId:     orgId,
+		Project:   params[0],
+		Subsystem: params[1],
+		Datapoint: params[2],
+	}
 	bytes, err := json.Marshal(datapoint)
 	if err == nil {
-		key := "deleteDatapoint:1:" + strconv.FormatInt(orgId, 10)
+		key := "2:" + strconv.FormatInt(orgId, 10) + ":deleteDatapoint"
 		clients.Pulsar.Send(model.ConfigurationTopic, key, bytes)
 		return &backend.CallResourceResponse{
 			Status: http.StatusAccepted,
