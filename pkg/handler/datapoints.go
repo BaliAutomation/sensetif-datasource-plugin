@@ -58,9 +58,9 @@ func DeleteDatapoint(orgId int64, params []string, _ []byte, clients *client.Cli
 	}
 	datapoint := model.DatapointIdentifier{
 		OrgId:     orgId,
-		Project:   params[0],
-		Subsystem: params[1],
-		Datapoint: params[2],
+		Project:   params[1],
+		Subsystem: params[2],
+		Datapoint: params[3],
 	}
 	bytes, err := json.Marshal(datapoint)
 	if err == nil {
