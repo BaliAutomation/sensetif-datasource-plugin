@@ -24,6 +24,7 @@ type streamHandler struct {
 
 func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
+	log.DefaultLogger.Info("SubscribeStream: " + req.Path)
 	if req.Path == "_errors" {
 		orgId := req.PluginContext.OrgID
 		organization := strconv.FormatInt(orgId, 10)
