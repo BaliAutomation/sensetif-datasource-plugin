@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"strconv"
-	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -62,41 +63,46 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 
 	for {
 		deadline, cancelFn := context.WithTimeout(context.Background(), time.Duration(30)*time.Second)
+		defer cancelFn()
+
 		msg, err := reader.Next(deadline)
-		cancelFn()
-		if msg != nil {
-			log.DefaultLogger.Info("Received msg.")
-			if err == nil {
-				log.DefaultLogger.Info(fmt.Sprintf("    Message: %s", msg.Payload()))
-				var notification = Notification{}
-				err = json.Unmarshal(msg.Payload(), &notification)
-				if err == nil {
-					// Work for later; Refactor so that the serialization below is happening in the Pulsar message receiver
-					// Go-routine to reduce work needed if more than one client is connected.
-					labelFrame.Fields[0].Set(0, notification.Time)
-					labelFrame.Fields[1].Set(0, notification.Source)
-					labelFrame.Fields[2].Set(0, notification.Key)
-					labelFrame.Fields[3].Set(0, string(notification.Value))
-					labelFrame.Fields[4].Set(0, notification.Message)
-					labelFrame.Fields[5].Set(0, notification.Exception.Message)
-					labelFrame.Fields[6].Set(0, notification.Exception.StackTrace)
-					log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
-					err = sender.SendFrame(labelFrame, data.IncludeAll)
-					if err != nil {
-						log.DefaultLogger.Error(fmt.Sprintf("Couldn't send frame: %v", err))
-						return err
-					}
-				} else {
-					log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshall json: %v", err))
-				}
-			} else {
-				log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
-			}
-			select {
-			case <-ctx.Done():
-				log.DefaultLogger.Info("Grafana sender: DONE")
-				return ctx.Err()
-			}
+		if err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
+			continue
+			// shouldn't we return an error here?
+			// return fmt.Errorf("Couldn't get the message from pulsar: %v", err)
+		}
+
+		if msg == nil {
+			log.DefaultLogger.Error("Received empty msg from pulsar")
+			continue
+			// return fmt.Errorf("got empty msg")
+		}
+
+		log.DefaultLogger.Info(fmt.Sprintf("    Message: %s", msg.Payload()))
+		notification := Notification{}
+		err = json.Unmarshal(msg.Payload(), &notification)
+		if err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal json: %v", err))
+			continue
+		}
+
+		// Work for later; Refactor so that the serialization below is happening in the Pulsar message receiver
+		// Go-routine to reduce work needed if more than one client is connected.
+		labelFrame.Fields[0].Set(0, notification.Time)
+		labelFrame.Fields[1].Set(0, notification.Source)
+		labelFrame.Fields[2].Set(0, notification.Key)
+		labelFrame.Fields[3].Set(0, string(notification.Value))
+		labelFrame.Fields[4].Set(0, notification.Message)
+		labelFrame.Fields[5].Set(0, notification.Exception.Message)
+		labelFrame.Fields[6].Set(0, notification.Exception.StackTrace)
+
+		log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
+
+		err = sender.SendFrame(labelFrame, data.IncludeAll)
+		if err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Couldn't send frame: %v", err))
+			return err
 		}
 	}
 }
