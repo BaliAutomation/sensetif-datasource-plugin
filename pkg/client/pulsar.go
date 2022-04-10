@@ -21,6 +21,24 @@ func (p *PulsarClient) Partitions(topic string) []string {
 	return parts
 }
 
+func (p *PulsarClient) CreateReader(topic string) pulsar.Reader {
+	reader, err := p.client.CreateReader(pulsar.ReaderOptions{
+		Topic:          topic,
+		StartMessageID: pulsar.EarliestMessageID(),
+	})
+	if err != nil {
+		log.DefaultLogger.Error(fmt.Sprintf("Failed to create Pulsar Reader for: %s", topic), err)
+	}
+	// If EarliestMessageID() becomes too troublesome, we could do Seek() and some number of minutes back in time.
+	// thirty_min_negative := time.Duration(-30) * time.Minute
+	// thirty_minutes_ago := time.Now().Add(thirty_min_negative)
+	// err = reader.SeekByTime(thirty_minutes_ago)
+	// if( err != nil){
+	// 	log.DefaultLogger.Error("Unable to seek() Pulsar 30 minutes back", err)
+	// }
+	return reader
+}
+
 func (p *PulsarClient) Send(topic string, key string, value []byte) pulsar.MessageID {
 	topic = model.MainNamespace + "/" + topic
 	parts, e := p.client.TopicPartitions(topic)

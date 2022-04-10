@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
+	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"net"
 	"strconv"
 	"time"
 
-	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -22,69 +21,16 @@ type streamHandler struct {
 	subscribers map[int64][]*chan *pulsar.ConsumerMessage
 }
 
-// TODO: All the Pulsar specifics should be moved to PulsarClient
 func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
 	log.DefaultLogger.Info("SubscribeStream: " + req.Path)
-	if req.Path == "_errors" {
-		orgId := req.PluginContext.OrgID
-		organization := strconv.FormatInt(orgId, 10)
-		topic := model.ErrorsTopic + organization
-		ip := getIpAddress()
-		subscriptionName := "grafana-errors-" + organization + "-" + ip.String()
-		if h.consumers[orgId] != nil {
-			// We have already established the Pulsar read channel, and can simply return with an OK.
-			return &backend.SubscribeStreamResponse{
-				Status: backend.SubscribeStreamStatusOK,
-			}, nil
-		}
-		consumer, err := h.pulsar.Subscribe(pulsar.ConsumerOptions{
-			SubscriptionName: subscriptionName,
-			Type:             pulsar.Exclusive,
-			Topic:            model.ErrorNamespace + "/" + topic,
-		})
-
-		if err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("failed to create pulsar consumer err: %v", err))
-			return &backend.SubscribeStreamResponse{
-				Status: backend.SubscribeStreamStatusNotFound,
-			}, err
-		}
-		h.consumers[orgId] = consumer
-
-		// Create the Go Routine that reads the Pulsar messages and publish to local Go channel per browser client
-		pulsarChannel := (*consumer).Chan()
-		subscribers := h.subscribers[orgId]
-		if subscribers == nil {
-			subscribers = []*chan *pulsar.ConsumerMessage{}
-			h.subscribers[orgId] = subscribers
-		}
-
-		// We are creating a Go Routing that will read the Pulsar Consumer and feed the messages to
-		// all registered Go Channels. Each such Channel is serving one websocket client, i.e. a Error Reporting
-		// Tab in Grafana. I.e. We have a local fan-out of incoming Pulsar messages.
-		//
-		// This will never clean up. That is fine for now, but eventually that will take up too much resources.
-		go func() {
-			for {
-				log.DefaultLogger.Info("Loop Pulsar receiver.")
-				select {
-				case msg := <-pulsarChannel:
-					var ch *chan *pulsar.ConsumerMessage
-					for _, ch = range subscribers {
-						log.DefaultLogger.Info(fmt.Sprintf("Message received: (%s) %+v", organization, msg))
-						*ch <- &msg
-					}
-				}
-			}
-		}()
-
+	if req.Path != "_notifications" {
 		return &backend.SubscribeStreamResponse{
-			Status: backend.SubscribeStreamStatusOK,
+			Status: backend.SubscribeStreamStatusNotFound,
 		}, nil
 	}
 	return &backend.SubscribeStreamResponse{
-		Status: backend.SubscribeStreamStatusNotFound,
+		Status: backend.SubscribeStreamStatusOK,
 	}, nil
 }
 
@@ -97,11 +43,6 @@ func (h *streamHandler) PublishStream(_ context.Context, _ *backend.PublishStrea
 func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
 	log.DefaultLogger.Info("RunStream")
 	orgId := req.PluginContext.OrgID
-	channel := make(chan *pulsar.ConsumerMessage)
-	h.subscribers[orgId] = append(h.subscribers[orgId], &channel)
-
-	// TODO: Figure out what is happening when we have multiple browser windows opened.
-	// TODO: Do we need to do something special to shut down the function that feeds the Channel?
 
 	// It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
 	// system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
@@ -115,23 +56,16 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 		data.NewField("ExceptionMessage", nil, make([]string, 1)),
 		data.NewField("ExceptionStackTrace", nil, make([]string, 1)),
 	)
+	reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
+	defer reader.Close()
 
 	for {
-		log.DefaultLogger.Info("Loop Grafana sender.")
-		select {
-		case <-ctx.Done():
-			log.DefaultLogger.Info("Grafana sender: DONE")
-			index := find(h.subscribers[orgId], &channel)
-			if index >= 0 {
-				h.subscribers[orgId] = remove(h.subscribers[orgId], index)
-			}
-			close(channel)
-			return ctx.Err()
-
-		case msg := <-channel:
-			log.DefaultLogger.Info("Received msg: %s", msg.Payload())
+		msg, err := reader.Next(context.Background())
+		log.DefaultLogger.Info("Received msg.")
+		if err == nil {
+			log.DefaultLogger.Info(fmt.Sprintf("    Message: %s", msg.Payload()))
 			var notification = Notification{}
-			err := json.Unmarshal(msg.Payload(), &notification)
+			err = json.Unmarshal(msg.Payload(), &notification)
 			if err == nil {
 				// Work for later; Refactor so that the serialization below is happening in the Pulsar message receiver
 				// Go-routine to reduce work needed if more than one client is connected.
@@ -150,29 +84,16 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 			} else {
 				log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshall json: %v", err))
 			}
+		} else {
+			log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
+		}
+
+		select {
+		case <-ctx.Done():
+			log.DefaultLogger.Info("Grafana sender: DONE")
+			return ctx.Err()
 		}
 	}
-}
-
-func getIpAddress() net.IP {
-	conn, _ := net.Dial("udp", "10.20.0.1:80")
-	defer conn.Close()
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP
-}
-
-func remove(array []*chan *pulsar.ConsumerMessage, index int) []*chan *pulsar.ConsumerMessage {
-	array[index] = array[len(array)-1]
-	return array[:len(array)-1]
-}
-
-func find(array []*chan *pulsar.ConsumerMessage, channel *chan *pulsar.ConsumerMessage) int {
-	for index, ch := range array {
-		if ch == channel {
-			return index
-		}
-	}
-	return -1
 }
 
 type ExceptionDto struct {
