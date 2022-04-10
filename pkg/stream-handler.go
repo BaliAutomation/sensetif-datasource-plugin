@@ -60,38 +60,41 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	defer reader.Close()
 
 	for {
-		msg, err := reader.Next(context.Background())
-		log.DefaultLogger.Info("Received msg.")
-		if err == nil {
-			log.DefaultLogger.Info(fmt.Sprintf("    Message: %s", msg.Payload()))
-			var notification = Notification{}
-			err = json.Unmarshal(msg.Payload(), &notification)
+		deadline, cancelFn := context.WithTimeout(context.Background(), time.Duration(30)*time.Second)
+		msg, err := reader.Next(deadline)
+		cancelFn()
+		if msg != nil {
+			log.DefaultLogger.Info("Received msg.")
 			if err == nil {
-				// Work for later; Refactor so that the serialization below is happening in the Pulsar message receiver
-				// Go-routine to reduce work needed if more than one client is connected.
-				labelFrame.Fields[0].Set(0, notification.Time)
-				labelFrame.Fields[1].Set(0, notification.Source)
-				labelFrame.Fields[2].Set(0, notification.Key)
-				labelFrame.Fields[3].Set(0, string(notification.Value))
-				labelFrame.Fields[4].Set(0, notification.Message)
-				labelFrame.Fields[5].Set(0, notification.Exception.Message)
-				labelFrame.Fields[6].Set(0, notification.Exception.StackTrace)
-				err = sender.SendFrame(labelFrame, data.IncludeAll)
-				if err != nil {
-					log.DefaultLogger.Error(fmt.Sprintf("Couldn't send frame: %v", err))
-					return err
+				log.DefaultLogger.Info(fmt.Sprintf("    Message: %s", msg.Payload()))
+				var notification = Notification{}
+				err = json.Unmarshal(msg.Payload(), &notification)
+				if err == nil {
+					// Work for later; Refactor so that the serialization below is happening in the Pulsar message receiver
+					// Go-routine to reduce work needed if more than one client is connected.
+					labelFrame.Fields[0].Set(0, notification.Time)
+					labelFrame.Fields[1].Set(0, notification.Source)
+					labelFrame.Fields[2].Set(0, notification.Key)
+					labelFrame.Fields[3].Set(0, string(notification.Value))
+					labelFrame.Fields[4].Set(0, notification.Message)
+					labelFrame.Fields[5].Set(0, notification.Exception.Message)
+					labelFrame.Fields[6].Set(0, notification.Exception.StackTrace)
+					err = sender.SendFrame(labelFrame, data.IncludeAll)
+					if err != nil {
+						log.DefaultLogger.Error(fmt.Sprintf("Couldn't send frame: %v", err))
+						return err
+					}
+				} else {
+					log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshall json: %v", err))
 				}
 			} else {
-				log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshall json: %v", err))
+				log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
 			}
-		} else {
-			log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
-		}
-
-		select {
-		case <-ctx.Done():
-			log.DefaultLogger.Info("Grafana sender: DONE")
-			return ctx.Err()
+			select {
+			case <-ctx.Done():
+				log.DefaultLogger.Info("Grafana sender: DONE")
+				return ctx.Err()
+			}
 		}
 	}
 }
