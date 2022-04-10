@@ -4,7 +4,6 @@ import (
 	"context"
 	JSON "encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
@@ -28,8 +27,7 @@ type SensetifDatasource struct {
 }
 
 func (sds *SensetifDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	log.DefaultLogger.Info(fmt.Sprintf("QueryData, ctx=%+v, req=%+v", ctx, req))
-	log.DefaultLogger.Info(fmt.Sprintf("Request, req=%s", string(req.Queries[0].JSON)))
+	log.DefaultLogger.Info(fmt.Sprintf("QueryData: %d, %s -> %s", req.PluginContext.OrgID, req.PluginContext.User.Login, string(req.Queries[0].JSON)))
 	orgId := req.PluginContext.OrgID
 	response := backend.NewQueryDataResponse()
 	for _, q := range req.Queries {
@@ -53,11 +51,8 @@ func (sds *SensetifDatasource) query(queryName string, orgId int64, query backen
 	}
 
 	if qm.Format == "" {
-		log.DefaultLogger.Warn("format is empty. defaulting to time series")
 		qm.Format = "timeseries"
 	}
-
-	log.DefaultLogger.Info("format is " + qm.Format)
 	switch qm.Format {
 	case "timeseries":
 		maxValues := int(query.MaxDataPoints)
@@ -78,8 +73,8 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValue
 		return response
 	}
 
-	log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
-	log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model_))
+	//log.DefaultLogger.Info("executeTimeseriesQuery(" + parameters + "," + strconv.FormatInt(orgId, 10) + ")")
+	//log.DefaultLogger.Info(fmt.Sprintf("Model: %+v", model_))
 	timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to, maxValues)
 
 	times := []time.Time{}

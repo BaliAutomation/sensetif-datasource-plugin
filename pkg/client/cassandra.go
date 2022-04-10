@@ -65,7 +65,7 @@ func (cass *CassandraClient) Reinitialize() {
 }
 
 func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
-	log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
+	//log.DefaultLogger.Info("queryTimeseries:  " + strconv.FormatInt(org, 10) + "/" + sensor.Project + "/" + sensor.Subsystem + "/" + sensor.Datapoint + "   " + from.Format(time.RFC3339) + "->" + to.Format(time.RFC3339))
 	var result []model.TsPair
 	startYearMonth := from.Year()*12 + int(from.Month()) - 1
 	endYearMonth := to.Year()*12 + int(to.Month()) - 1
@@ -88,16 +88,12 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
 
 func (cass *CassandraClient) GetCurrentLimits(orgId int64) model.PlanLimits {
 
-	log.DefaultLogger.Info("getOrganization:  " + strconv.FormatInt(orgId, 10))
-	//  SELECT maxdatapoints,maxstorage,minpollinterval FROM planlimits WHERE orgid = ? ;
+	//log.DefaultLogger.Info("GetCurrentLimits for " + strconv.FormatInt(orgId, 10))
 	scanner := cass.createQuery(planlimitsTablename, planlimitsQuery, orgId)
-
 	var limits model.PlanLimits
-	// default values
 	limits.MaxStorage = "b"
 	limits.MaxDatapoints = 50
 	limits.MinPollInterval = "one_hour"
-
 	for scanner.Next() {
 		err := scanner.Scan(&limits.MaxDatapoints, &limits.MaxStorage, &limits.MinPollInterval)
 		if err != nil {
@@ -259,10 +255,10 @@ func reduceSize(maxValues int, result []model.TsPair) []model.TsPair {
 			// TODO; Should we have some type of function for this reduction?? Average, Min, Max?
 			resultIndex = resultIndex - factor
 		}
-		log.DefaultLogger.Info(fmt.Sprintf("Reduced to %d", len(downsized)))
+		//log.DefaultLogger.Info(fmt.Sprintf("Reduced to %d", len(downsized)))
 		return downsized
 	}
-	log.DefaultLogger.Info(fmt.Sprintf("Returning %d datapoints", len(result)))
+	//log.DefaultLogger.Info(fmt.Sprintf("Returning %d datapoints", len(result)))
 	return result
 }
 
