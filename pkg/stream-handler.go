@@ -23,7 +23,7 @@ type streamHandler struct {
 
 func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
-	log.DefaultLogger.Info("SubscribeStream: " + req.Path)
+	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + req.PluginContext.User.Login)
 	if req.Path != "_notifications" {
 		return &backend.SubscribeStreamResponse{
 			Status: backend.SubscribeStreamStatusNotFound,
@@ -34,14 +34,15 @@ func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.Subscrib
 	}, nil
 }
 
-func (h *streamHandler) PublishStream(_ context.Context, _ *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
+func (h *streamHandler) PublishStream(_ context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
+	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + req.PluginContext.User.Login)
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
 }
 
 func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	log.DefaultLogger.Info("RunStream")
+	log.DefaultLogger.Info("RunStream from " + req.PluginContext.User.Login)
 	orgId := req.PluginContext.OrgID
 
 	// It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
@@ -79,6 +80,7 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 					labelFrame.Fields[4].Set(0, notification.Message)
 					labelFrame.Fields[5].Set(0, notification.Exception.Message)
 					labelFrame.Fields[6].Set(0, notification.Exception.StackTrace)
+					log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
 					err = sender.SendFrame(labelFrame, data.IncludeAll)
 					if err != nil {
 						log.DefaultLogger.Error(fmt.Sprintf("Couldn't send frame: %v", err))
