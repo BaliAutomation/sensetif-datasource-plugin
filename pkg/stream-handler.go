@@ -51,8 +51,8 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	// batches of errors.
 	labelFrame := data.NewFrame("error",
 		data.NewField("Time", nil, make([]time.Time, 1)),
-		data.NewField("Source", nil, make([]time.Time, 1)),
-		data.NewField("Key", nil, make([]time.Time, 1)),
+		data.NewField("Source", nil, make([]string, 1)),
+		data.NewField("Key", nil, make([]string, 1)),
 		data.NewField("Value", nil, make([]string, 1)),
 		data.NewField("Message", nil, make([]string, 1)),
 		data.NewField("ExceptionMessage", nil, make([]string, 1)),
