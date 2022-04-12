@@ -51,6 +51,7 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	// batches of errors.
 	labelFrame := data.NewFrame("error",
 		data.NewField("Time", nil, make([]time.Time, 1)),
+		data.NewField("Severity", nil, make([]string, 1)),
 		data.NewField("Source", nil, make([]string, 1)),
 		data.NewField("Key", nil, make([]string, 1)),
 		data.NewField("Value", nil, make([]string, 1)),
@@ -82,14 +83,14 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshall json: %v", err))
 			continue
 		}
-		// Work for later; Refactor so that the serialization below is happening in the Pulsar message receiver
 		labelFrame.Fields[0].Set(0, notification.Time)
-		labelFrame.Fields[1].Set(0, notification.Source)
-		labelFrame.Fields[2].Set(0, notification.Key)
-		labelFrame.Fields[3].Set(0, string(notification.Value))
-		labelFrame.Fields[4].Set(0, notification.Message)
-		labelFrame.Fields[5].Set(0, notification.Exception.Message)
-		labelFrame.Fields[6].Set(0, notification.Exception.StackTrace)
+		labelFrame.Fields[1].Set(0, notification.Severity)
+		labelFrame.Fields[2].Set(0, notification.Source)
+		labelFrame.Fields[3].Set(0, notification.Key)
+		labelFrame.Fields[4].Set(0, string(notification.Value))
+		labelFrame.Fields[5].Set(0, notification.Message)
+		labelFrame.Fields[6].Set(0, notification.Exception.Message)
+		labelFrame.Fields[7].Set(0, notification.Exception.StackTrace)
 		log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
 		err = sender.SendFrame(labelFrame, data.IncludeAll)
 		if err != nil {
@@ -106,6 +107,7 @@ type ExceptionDto struct {
 
 type Notification struct {
 	Time      time.Time    `json:"time"`
+	Severity  string       `json:"severity"`
 	Source    string       `json:"source"`
 	Key       string       `json:"key"`
 	Value     []byte       `json:"value"`
