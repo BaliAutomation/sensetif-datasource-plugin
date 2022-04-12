@@ -69,12 +69,10 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 			log.DefaultLogger.Info("Grafana sender: DONE")
 			return ctx.Err()
 		}
-		log.DefaultLogger.Info(fmt.Sprintf("Received msg: %+v", err))
 		if err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
 			continue
 		}
-		log.DefaultLogger.Info(fmt.Sprintf("    Message: %s", msg.Payload()))
 		var notification = Notification{}
 		err = json.Unmarshal(msg.Payload(), &notification)
 		if err != nil {
