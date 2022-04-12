@@ -7,12 +7,10 @@ import (
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/apache/pulsar-client-go/pulsar"
-	"strconv"
-	"time"
-
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"strconv"
 )
 
 type streamHandler struct {
@@ -50,7 +48,7 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	// system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
 	// batches of errors.
 	labelFrame := data.NewFrame("error",
-		data.NewField("Time", nil, make([]time.Time, 1)),
+		data.NewField("Time", nil, make([]int64, 1)),
 		data.NewField("Severity", nil, make([]string, 1)),
 		data.NewField("Source", nil, make([]string, 1)),
 		data.NewField("Key", nil, make([]string, 1)),
@@ -106,7 +104,7 @@ type ExceptionDto struct {
 }
 
 type Notification struct {
-	Time      time.Time    `json:"time"`
+	Time      int64        `json:"time"`
 	Severity  string       `json:"severity"`
 	Source    string       `json:"source"`
 	Key       string       `json:"key"`
