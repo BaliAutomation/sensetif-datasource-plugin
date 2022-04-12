@@ -23,26 +23,27 @@ type streamHandler struct {
 
 func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
-	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + req.PluginContext.User.Login)
+	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ": " + req.PluginContext.User.Login)
 	if req.Path != "_notifications" {
 		return &backend.SubscribeStreamResponse{
 			Status: backend.SubscribeStreamStatusNotFound,
 		}, nil
 	}
+	log.DefaultLogger.Info("SubscribeStream: succeed")
 	return &backend.SubscribeStreamResponse{
 		Status: backend.SubscribeStreamStatusOK,
 	}, nil
 }
 
 func (h *streamHandler) PublishStream(_ context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
-	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + req.PluginContext.User.Login)
+	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ":" + req.PluginContext.User.Login)
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
 }
 
 func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	log.DefaultLogger.Info("RunStream from " + req.PluginContext.User.Login)
+	log.DefaultLogger.Info("RunStream from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ":" + req.PluginContext.User.Login)
 	orgId := req.PluginContext.OrgID
 
 	// It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
@@ -59,6 +60,7 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	)
 	reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
 	defer reader.Close()
+	log.DefaultLogger.Info("Created Pulsar Reader.")
 
 	for {
 		// The provided Context is capturing the connection back to the browser, so when it is
