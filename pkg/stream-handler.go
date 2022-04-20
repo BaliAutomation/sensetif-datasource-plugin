@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"strconv"
 )
 
 type streamHandler struct {
@@ -48,7 +50,7 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	// system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
 	// batches of errors.
 	labelFrame := data.NewFrame("error",
-		data.NewField("Time", nil, make([]int64, 1)),
+		data.NewField("Time", nil, make([]time.Time, 1)),
 		data.NewField("Severity", nil, make([]string, 1)),
 		data.NewField("Source", nil, make([]string, 1)),
 		data.NewField("Key", nil, make([]string, 1)),
@@ -73,13 +75,13 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 			log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
 			continue
 		}
-		var notification = Notification{}
+		notification := Notification{}
 		err = json.Unmarshal(msg.Payload(), &notification)
 		if err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshall json: %v", err))
 			continue
 		}
-		labelFrame.Fields[0].Set(0, notification.Time)
+		labelFrame.Fields[0].Set(0, time.UnixMilli(notification.Time))
 		labelFrame.Fields[1].Set(0, notification.Severity)
 		labelFrame.Fields[2].Set(0, notification.Source)
 		labelFrame.Fields[3].Set(0, notification.Key)

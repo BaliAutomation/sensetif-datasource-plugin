@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine as plugin
+FROM golang:1.17-alpine as plugin
 
 RUN apk add build-base
 
