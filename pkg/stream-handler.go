@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"strconv"
 )
 
 type streamHandler struct {
@@ -48,15 +49,16 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 	// system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
 	// batches of errors.
 	labelFrame := data.NewFrame("error",
-		data.NewField("Time", nil, make([]int64, 1)),
-		data.NewField("Severity", nil, make([]string, 1)),
-		data.NewField("Source", nil, make([]string, 1)),
-		data.NewField("Key", nil, make([]string, 1)),
-		data.NewField("Value", nil, make([]string, 1)),
-		data.NewField("Message", nil, make([]string, 1)),
-		data.NewField("ExceptionMessage", nil, make([]string, 1)),
-		data.NewField("ExceptionStackTrace", nil, make([]string, 1)),
+		NewField("Time", nil, make([]int64, 1)),
+		NewFilterableField("Severity", nil, make([]string, 1)),
+		NewFilterableField("Source", nil, make([]string, 1)),
+		NewFilterableField("Key", nil, make([]string, 1)),
+		NewFilterableField("Value", nil, make([]string, 1)),
+		NewFilterableField("Message", nil, make([]string, 1)),
+		NewFilterableField("ExceptionMessage", nil, make([]string, 1)),
+		NewFilterableField("ExceptionStackTrace", nil, make([]string, 1)),
 	)
+
 	reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
 	defer reader.Close()
 	log.DefaultLogger.Info("Created Pulsar Reader.")
@@ -73,20 +75,24 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 			log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
 			continue
 		}
-		var notification = Notification{}
+		notification := Notification{}
 		err = json.Unmarshal(msg.Payload(), &notification)
 		if err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshall json: %v", err))
 			continue
 		}
-		labelFrame.Fields[0].Set(0, notification.Time)
-		labelFrame.Fields[1].Set(0, notification.Severity)
-		labelFrame.Fields[2].Set(0, notification.Source)
-		labelFrame.Fields[3].Set(0, notification.Key)
-		labelFrame.Fields[4].Set(0, string(notification.Value))
-		labelFrame.Fields[5].Set(0, notification.Message)
-		labelFrame.Fields[6].Set(0, notification.Exception.Message)
-		labelFrame.Fields[7].Set(0, notification.Exception.StackTrace)
+
+		labelFrame.SetRow(0,
+			notification.Time,
+			notification.Severity,
+			notification.Source,
+			notification.Key,
+			string(notification.Value),
+			notification.Message,
+			notification.Exception.Message,
+			notification.Exception.StackTrace,
+		)
+
 		log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
 		err = sender.SendFrame(labelFrame, data.IncludeAll)
 		if err != nil {
@@ -94,6 +100,21 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 			return err
 		}
 	}
+}
+
+func NewField(name string, labels data.Labels, values interface{}) *data.Field {
+	return data.NewField(name, labels, values)
+}
+
+func NewFilterableField(name string, labels data.Labels, values interface{}) *data.Field {
+	out := NewField(name, labels, values)
+
+	out.SetConfig(
+		&data.FieldConfig{
+			Custom: map[string]interface{}{"filterable": true},
+		})
+
+	return out
 }
 
 type ExceptionDto struct {
