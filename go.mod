@@ -13,7 +13,7 @@ require (
 	github.com/frankban/quicktest v1.14.2 // indirect
 	github.com/gocql/gocql v0.0.0-20210425135552-909f2a77f46e // newest version doesn't resolve inside Goland, but does from Make. Weird!
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/grafana/grafana-plugin-sdk-go v0.129.0
+	github.com/grafana/grafana-plugin-sdk-go v0.132.0
 	github.com/keybase/go-keychain v0.0.0-20201121013009-976c83ec27a6 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/linkedin/goavro/v2 v2.10.1 // indirect
