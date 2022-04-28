@@ -1,61 +1,29 @@
-package main
+package streaming
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
-	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"strconv"
 )
 
-type streamHandler struct {
-	pulsar      *client.PulsarClient
-	consumers   map[int64]*pulsar.Consumer
-	subscribers map[int64][]*chan *pulsar.ConsumerMessage
-}
-
-func (h *streamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
-	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
-	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ": " + req.PluginContext.User.Login)
-	if req.Path != "_notifications" {
-		return &backend.SubscribeStreamResponse{
-			Status: backend.SubscribeStreamStatusNotFound,
-		}, nil
-	}
-	log.DefaultLogger.Info("SubscribeStream: succeed")
-	return &backend.SubscribeStreamResponse{
-		Status: backend.SubscribeStreamStatusOK,
-	}, nil
-}
-
-func (h *streamHandler) PublishStream(_ context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
-	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ":" + req.PluginContext.User.Login)
-	return &backend.PublishStreamResponse{
-		Status: backend.PublishStreamStatusPermissionDenied,
-	}, nil
-}
-
-func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	log.DefaultLogger.Info("RunStream from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ":" + req.PluginContext.User.Login)
-	orgId := req.PluginContext.OrgID
-
+func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
 	// It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
 	// system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
 	// batches of errors.
 	labelFrame := data.NewFrame("error",
-		data.NewField("Time", nil, make([]int64, 1)),
-		data.NewField("Severity", nil, make([]string, 1)),
-		data.NewField("Source", nil, make([]string, 1)),
-		data.NewField("Key", nil, make([]string, 1)),
-		data.NewField("Value", nil, make([]string, 1)),
-		data.NewField("Message", nil, make([]string, 1)),
-		data.NewField("ExceptionMessage", nil, make([]string, 1)),
-		data.NewField("ExceptionStackTrace", nil, make([]string, 1)),
+		NewField("Time", nil, make([]int64, 1)),
+		NewFilterableField("Severity", nil, make([]string, 1)),
+		NewFilterableField("Source", nil, make([]string, 1)),
+		NewFilterableField("Key", nil, make([]string, 1)),
+		NewFilterableField("Value", nil, make([]string, 1)),
+		NewFilterableField("Message", nil, make([]string, 1)),
+		NewFilterableField("ExceptionMessage", nil, make([]string, 1)),
+		NewFilterableField("ExceptionStackTrace", nil, make([]string, 1)),
 	)
 	reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
 	defer reader.Close()
@@ -94,6 +62,21 @@ func (h *streamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
 			return err
 		}
 	}
+}
+
+func NewField(name string, labels data.Labels, values interface{}) *data.Field {
+	return data.NewField(name, labels, values)
+}
+
+func NewFilterableField(name string, labels data.Labels, values interface{}) *data.Field {
+	out := NewField(name, labels, values)
+
+	out.SetConfig(
+		&data.FieldConfig{
+			Custom: map[string]interface{}{"filterable": true},
+		})
+
+	return out
 }
 
 type ExceptionDto struct {

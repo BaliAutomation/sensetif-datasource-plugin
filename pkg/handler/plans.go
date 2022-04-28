@@ -185,9 +185,9 @@ func CheckOutSuccess(orgId int64 /*parameters*/, _ []string, body []byte, client
 	}
 	bytes, err := json.Marshal(paymentInfo)
 	if err == nil {
-		clients.Pulsar.Send(model.PaymentsTopic, strconv.FormatInt(orgId, 10), bytes)
+		clients.Pulsar.Send(model.PaymentsTopic, "2:"+strconv.FormatInt(orgId, 10), bytes)
 	} else {
-		clients.Pulsar.Send(model.PaymentErrorTopic, strconv.FormatInt(orgId, 10), []byte(fmt.Sprintf("%+v", err)))
+		clients.Pulsar.Send(model.PaymentErrorTopic, "2:"+strconv.FormatInt(orgId, 10), []byte(fmt.Sprintf("%+v", err)))
 	}
 
 	return &backend.CallResourceResponse{

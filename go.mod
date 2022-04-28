@@ -1,6 +1,6 @@
 module github.com/BaliAutomation/sensetif-datasource
 
-go 1.15
+go 1.18
 
 require (
 	github.com/AthenZ/athenz v1.10.40 // indirect

@@ -5,6 +5,7 @@ import (
 	"github.com/gocql/gocql"
 	"math"
 	"strconv"
+	"time"
 )
 
 type Datapoint interface {
@@ -32,6 +33,17 @@ type DatapointSettings struct {
 	TimeToLive TimeToLive   `json:"timeToLive"`
 	SourceType SourceType   `json:"datasourcetype"`
 	Datasource interface{}  `json:"datasource"` // either a Ttnv3Datasource or a WebDatasource or a MqttDatasource depending on SourceType
+}
+
+type JournalEntry struct {
+	Added time.Time `json:"added"`
+	Value string    `json:"value"`
+}
+
+type Journal struct {
+	Type    string         `json:"type"`
+	Name    string         `json:"name"`
+	Entries []JournalEntry `json:"entries"`
 }
 
 type Processing struct {

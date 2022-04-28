@@ -184,7 +184,7 @@ func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsyst
 	log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
 	scanner := cass.createQuery(datapointsTablename, datapointQuery, org, projectName, subsystemName, datapoint)
 	for scanner.Next() {
-		return cass.deserializeRow(scanner)
+		return cass.deserializeDatapointRow(scanner)
 	}
 	return model.DatapointSettings{}
 }
@@ -194,11 +194,49 @@ func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, su
 	result := make([]model.DatapointSettings, 0)
 	scanner := cass.createQuery(datapointsTablename, datapointsQuery, org, projectName, subsystemName)
 	for scanner.Next() {
-		datapoint := cass.deserializeRow(scanner)
+		datapoint := cass.deserializeDatapointRow(scanner)
 		result = append(result, datapoint)
 	}
 	log.DefaultLogger.Info(fmt.Sprintf("Found: %d datapoints", len(result)))
 	return result
+}
+
+func (cass *CassandraClient) SelectAllInJournal(org int64, journaltype string, journalname string) (model.Journal, error) {
+	log.DefaultLogger.Info("SelectAllInJournal:  " + strconv.FormatInt(org, 10) + "/" + journaltype + "/" + journalname)
+	result := model.Journal{
+		Type: journaltype,
+		Name: journalname,
+	}
+	scanner := cass.createQuery(journalTablename, journalSelectAllQuery, org, journaltype, journalname)
+	for scanner.Next() {
+		entry := model.JournalEntry{}
+		err := scanner.Scan(&entry.Value, &entry.Added)
+		if err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Unable to read Cassandra row(s) for %s (%s)", journalname, journaltype))
+			return model.Journal{}, err
+		}
+		result.Entries = append(result.Entries, entry)
+	}
+	return result, nil
+}
+
+func (cass *CassandraClient) SelectRangeInJournal(org int64, journaltype string, journalname string, from time.Time, to time.Time) (model.Journal, error) {
+	log.DefaultLogger.Info("SelectAllInJournal:  " + strconv.FormatInt(org, 10) + "/" + journaltype + "/" + journalname)
+	result := model.Journal{
+		Type: journaltype,
+		Name: journalname,
+	}
+	scanner := cass.createQuery(journalTablename, journalSelectRangeQuery, org, journaltype, journalname, from, to)
+	for scanner.Next() {
+		entry := model.JournalEntry{}
+		err := scanner.Scan(&entry.Value, &entry.Added)
+		if err != nil {
+			log.DefaultLogger.Error(fmt.Sprintf("Unable to read Cassandra row(s) for %s (%s)", journalname, journaltype))
+			return model.Journal{}, err
+		}
+		result.Entries = append(result.Entries, entry)
+	}
+	return result, nil
 }
 
 func (cass *CassandraClient) Shutdown() {
@@ -217,7 +255,7 @@ func (cass *CassandraClient) createQuery(tableName string, query string, args ..
 	return q.Iter().Scanner()
 }
 
-func (cass *CassandraClient) deserializeRow(scanner gocql.Scanner) model.DatapointSettings {
+func (cass *CassandraClient) deserializeDatapointRow(scanner gocql.Scanner) model.DatapointSettings {
 	var r model.DatapointSettings
 	// project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web
 	var ttnv3 model.Ttnv3Datasource
@@ -306,3 +344,7 @@ const tsQuery = "SELECT value,ts FROM %s.%s" +
 	" AND " +
 	" ts <= ?" +
 	";"
+
+const journalTablename = "journals"
+const journalSelectAllQuery = "SELECT value,ts FROM %s.%s WHERE orgid = ? AND type = ? AND name = ?;"
+const journalSelectRangeQuery = "SELECT value,ts FROM %s.%s WHERE orgid = ? AND type = ? AND name = ? AND ts >= ? AND  ts <= ? ;"

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
-	"github.com/apache/pulsar-client-go/pulsar"
+	"github.com/BaliAutomation/sensetif-datasource/pkg/streaming"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
@@ -28,16 +28,8 @@ func main() {
 	}
 
 	ds := createDatasource(&cassandraClient, cassandraHosts)
-	sh := createStreamHandler(&pulsarClient)
+	sh := streaming.CreateStreamHandler(&pulsarClient)
 	startServing(ds, &resourceHandler, &sh)
-}
-
-func createStreamHandler(pulsarClient *client.PulsarClient) streamHandler {
-	return streamHandler{
-		pulsar:      pulsarClient,
-		consumers:   make(map[int64]*pulsar.Consumer),
-		subscribers: make(map[int64][]*chan *pulsar.ConsumerMessage),
-	}
 }
 
 func createCassandraClient() ([]string, client.CassandraClient) {
@@ -83,7 +75,7 @@ func stripeAuthKey() string {
 	return "sk_test_51JZvsFBil9jp3I2LySc7piIiEpXUlDdcxpXdVERSLL10nv2AUM1dfoCjSAZIMJ2XlC8zK1tkxJw85F2KlkBh9mxE00Vne8Kp5Z"
 }
 
-func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler, streamHandler *streamHandler) {
+func startServing(ds SensetifDatasource, resourceHandler *ResourceHandler, streamHandler *streaming.StreamHandler) {
 	log.DefaultLogger.Info("startServing()")
 	log.DefaultLogger.Info("Pulsar Client: " + fmt.Sprintf("%+v", resourceHandler.Clients.Pulsar))
 	serveOpts := datasource.ServeOpts{
