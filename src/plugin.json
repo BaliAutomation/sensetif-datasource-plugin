@@ -27,11 +27,11 @@
     "links": [
       {
         "name": "Website",
-        "url": "https://github.com/BaliAutomation/sensetif-datasource-plugin"
+        "url": "https://github.com/sensetif/sensetif-datasource-plugin"
       },
       {
         "name": "License",
-        "url": "https://github.com/BaliAutomation/sensetif-datasource-plugin/blob/master/LICENSE"
+        "url": "https://github.com/sensetif/sensetif-datasource-plugin/blob/master/LICENSE"
       }
     ],
     "screenshots": [],
