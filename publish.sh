@@ -28,6 +28,6 @@ npx @grafana/toolkit plugin:sign --rootUrls https://sensetif.net/
 
 mkdir sensetif-datasource
 cp -r dist/* sensetif-datasource
-tar cf sensetif-datasource_$VERSION.tar.gz sensetif-datasource
+tar cfz sensetif-datasource_$VERSION.tar.gz sensetif-datasource
 scp sensetif-datasource_$VERSION.tar.gz root@repo.sensetif.com:/var/www/repository/grafana-plugins/sensetif-datasource/
 rm -rf sensetif-datasource sensetif-datasource_$VERSION.tar.gz
