@@ -2,11 +2,12 @@ package streaming
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/BaliAutomation/sensetif-datasource/pkg/client"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"golang.org/x/net/context"
-	"strconv"
 )
 
 type StreamHandler struct {
@@ -19,6 +20,7 @@ func CreateStreamHandler(pulsarClient *client.PulsarClient) StreamHandler {
 		pulsar: pulsarClient,
 	}
 }
+
 func (h *StreamHandler) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
 	// Called once for each new Organization?? Or is once per Browser?? Or once per Browser tab??
 	log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ": " + req.PluginContext.User.Login)
