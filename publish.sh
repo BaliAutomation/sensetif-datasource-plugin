@@ -28,7 +28,7 @@ npx @grafana/toolkit plugin:sign --rootUrls https://sensetif.net/
 
 mkdir sensetif-datasource
 cp -r dist/* sensetif-datasource
-rm sensetif-app/module.js.LICENSE.txt
+rm sensetif-app/module.js.LICENSE.txt 2>/dev/null
 tar cfz sensetif-datasource_$VERSION.tar.gz sensetif-datasource
 scp sensetif-datasource_$VERSION.tar.gz root@repo.sensetif.com:/var/www/repository/grafana-plugins/sensetif-datasource/
 rm -rf sensetif-datasource sensetif-datasource_$VERSION.tar.gz

@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"strconv"
 )
 
 func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
@@ -19,11 +17,11 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
 	reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
 	defer reader.Close()
 	log.DefaultLogger.Info("Created Pulsar Reader.")
-	oneHourAgo := time.Now().Add(60 * time.Minute)
-	seekError := reader.SeekByTime(oneHourAgo)
-	if seekError != nil {
-		log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
-	}
+	////oneHourAgo := time.Now().Add(60 * time.Minute)
+	////seekError := reader.SeekByTime(oneHourAgo)
+	//if seekError != nil {
+	//	log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
+	//}
 	for {
 		// The provided Context is capturing the connection back to the browser, so when it is
 		// Done(), then we should just exit the for loop.
