@@ -2,7 +2,6 @@ package streaming
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -35,21 +34,8 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
 			continue
 		}
 
-		notification := Notification{}
-		err = json.Unmarshal(msg.Payload(), &notification)
-		if err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Could not unmarshal json: %v", err))
-			continue
-		}
-
-		data, err := json.Marshal(notification)
-		if err != nil {
-			log.DefaultLogger.Error(fmt.Sprintf("Could not marshal json back: %v", err))
-			continue
-		}
-
 		log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
-		err = sender.SendJSON(data)
+		err = sender.SendJSON(msg.Payload())
 		if err != nil {
 			log.DefaultLogger.Error(fmt.Sprintf("Couldn't send frame: %v", err))
 			return err
