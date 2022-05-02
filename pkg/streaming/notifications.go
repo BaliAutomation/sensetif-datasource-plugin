@@ -16,9 +16,8 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
     // batches of errors.
     reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
     defer reader.Close()
-    log.DefaultLogger.Info("Created Pulsar Reader.")
-    thirty_min_negative := time.Duration(-30) * time.Minute
-    thirty_minutes_ago := time.Now().Add(thirty_min_negative)
+    thirty_minutes_ago := time.Now().Add(-30 * time.Minute)
+    log.DefaultLogger.Info("Created Pulsar Reader. Start reading from " + thirty_minutes_ago.String())
     seekError := reader.SeekByTime(thirty_minutes_ago)
     if seekError != nil {
         log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
