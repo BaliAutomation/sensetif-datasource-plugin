@@ -11,14 +11,14 @@ import (
     "time"
 )
 
-func (h *StreamHandler) SubscribeNotificationsStream(ctx context.Context, req *backend.SubscribeStreamRequest, orgId int64) (*backend.SubscribeStreamResponse, error) {
+func (h *StreamHandler) SubscribeNotificationsStream(_ context.Context, _ *backend.SubscribeStreamRequest, orgId int64) (*backend.SubscribeStreamResponse, error) {
 
     reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
     defer reader.Close()
 
-    thirty_minutes_ago := time.Now().Add(-30 * time.Minute)
-    log.DefaultLogger.Info("Subscribing. Send last 30 minutes of messages " + thirty_minutes_ago.String())
-    seekError := reader.SeekByTime(thirty_minutes_ago)
+    thirtyMinutesAgo := time.Now().Add(-30 * time.Minute)
+    log.DefaultLogger.Info("Subscribing. Send last 30 minutes of messages " + thirtyMinutesAgo.String())
+    seekError := reader.SeekByTime(thirtyMinutesAgo)
     if seekError != nil {
         log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
     }
