@@ -4,11 +4,47 @@ import (
     "context"
     "fmt"
     "github.com/BaliAutomation/sensetif-datasource/pkg/model"
+    "github.com/apache/pulsar-client-go/pulsar"
     "github.com/grafana/grafana-plugin-sdk-go/backend"
     "github.com/grafana/grafana-plugin-sdk-go/backend/log"
     "strconv"
     "time"
 )
+
+func (h *StreamHandler) SubscribeNotificationsStream(ctx context.Context, req *backend.SubscribeStreamRequest, orgId int64) (*backend.SubscribeStreamResponse, error) {
+
+    reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
+    defer reader.Close()
+
+    thirty_minutes_ago := time.Now().Add(-30 * time.Minute)
+    log.DefaultLogger.Info("Subscribing. Send last 30 minutes of messages " + thirty_minutes_ago.String())
+    seekError := reader.SeekByTime(thirty_minutes_ago)
+    if seekError != nil {
+        log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
+    }
+    var err error
+    var msg pulsar.Message
+    var result []byte
+    result = append(result, '[')
+    notFirst := false
+    for reader.HasNext() {
+        msg, err = reader.Next(context.Background())
+        if err != nil {
+            if notFirst {
+                result = append(result, ',')
+            } else {
+                notFirst = true
+            }
+            result = append(result, msg.Payload()...)
+        }
+    }
+    result = append(result, ']')
+    initialData, err := backend.NewInitialData(result)
+    return &backend.SubscribeStreamResponse{
+        Status:      backend.SubscribeStreamStatusOK,
+        InitialData: initialData,
+    }, nil
+}
 
 func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
     // It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
@@ -16,9 +52,8 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
     // batches of errors.
     reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
     defer reader.Close()
-    thirty_minutes_ago := time.Now().Add(-30 * time.Minute)
-    log.DefaultLogger.Info("Created Pulsar Reader. Start reading from " + thirty_minutes_ago.String())
-    seekError := reader.SeekByTime(thirty_minutes_ago)
+    log.DefaultLogger.Info("Created Pulsar Reader.")
+    seekError := reader.SeekByTime(time.Now())
     if seekError != nil {
         log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
     }
