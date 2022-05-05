@@ -67,9 +67,10 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
     reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
     defer reader.Close()
     log.DefaultLogger.Info("Created Pulsar Reader.")
-    seekError := reader.SeekByTime(time.Now())
+    minuteAgo := time.Now().Add(-1 * time.Minute)
+    seekError := reader.SeekByTime(minuteAgo)
     if seekError != nil {
-        log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
+        log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one minute back: %+v", seekError))
     }
     for {
         // The provided Context is capturing the connection back to the browser, so when it is
@@ -83,7 +84,6 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
             log.DefaultLogger.Error(fmt.Sprintf("Couldn't get the message via reader.Next(): %+v", err))
             continue
         }
-
         log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
         err = sender.SendJSON(msg.Payload())
         if err != nil {
