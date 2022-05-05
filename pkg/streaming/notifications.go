@@ -66,12 +66,12 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
     // batches of errors.
     reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
     defer reader.Close()
-    log.DefaultLogger.Info("Created Pulsar Reader.")
-    minuteAgo := time.Now().Add(-1 * time.Minute)
-    seekError := reader.SeekByTime(minuteAgo)
-    if seekError != nil {
-        log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one minute back: %+v", seekError))
-    }
+    //log.DefaultLogger.Info("Created Pulsar Reader.")
+    //minuteAgo := time.Now().Add(-1 * time.Minute)
+    //seekError := reader.SeekByTime(minuteAgo)
+    //if seekError != nil {
+    //    log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one minute back: %+v", seekError))
+    //}
     for {
         // The provided Context is capturing the connection back to the browser, so when it is
         // Done(), then we should just exit the for loop.
