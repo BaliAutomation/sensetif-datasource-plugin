@@ -34,7 +34,13 @@ func (h *StreamHandler) SubscribeNotificationsStream(_ context.Context, _ *backe
     }
     //messages = reverse(messages)
     result = append(result, '[')
+    notFirst := false
     for i := 0; i < len(messages); i++ {
+        if notFirst {
+            result = append(result, ',')
+        } else {
+            notFirst = true
+        }
         result = append(result, messages[i]...)
     }
     result = append(result, ']')
@@ -47,6 +53,7 @@ func (h *StreamHandler) SubscribeNotificationsStream(_ context.Context, _ *backe
         }, nil
     }
     log.DefaultLogger.Error(fmt.Sprintf("Error in creating InitialData to be sent to client; %+v", err), err)
+    log.DefaultLogger.Error("Error in: \n" + string(result))
     return &backend.SubscribeStreamResponse{
         Status:      backend.SubscribeStreamStatusPermissionDenied,
         InitialData: initialData,
