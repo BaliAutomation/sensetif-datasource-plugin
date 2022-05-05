@@ -16,32 +16,39 @@ func (h *StreamHandler) SubscribeNotificationsStream(_ context.Context, _ *backe
     reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
     defer reader.Close()
 
-    thirtyMinutesAgo := time.Now().Add(-30 * time.Minute)
-    log.DefaultLogger.Info("Subscribing. Send last 30 minutes of messages " + thirtyMinutesAgo.String())
-    seekError := reader.SeekByTime(thirtyMinutesAgo)
+    hourAgo := time.Now().Add(-60 * time.Minute)
+    log.DefaultLogger.Info("Subscribing. Send last 60 minutes of messages " + hourAgo.String())
+    seekError := reader.SeekByTime(hourAgo)
     if seekError != nil {
         log.DefaultLogger.Error(fmt.Sprintf("Unable to seek one hour back: %+v", seekError))
     }
     var err error
     var msg pulsar.Message
+    var messages [][]byte
     var result []byte
-    result = append(result, '[')
-    notFirst := false
+    var count int32 = 0
     for reader.HasNext() {
         msg, err = reader.Next(context.Background())
-        if err != nil {
-            if notFirst {
-                result = append(result, ',')
-            } else {
-                notFirst = true
-            }
-            result = append(result, msg.Payload()...)
-        }
+        messages = append(messages, msg.Payload())
+        count++
+    }
+    //messages = reverse(messages)
+    result = append(result, '[')
+    for i := 0; i < len(messages); i++ {
+        result = append(result, messages[i]...)
     }
     result = append(result, ']')
     initialData, err := backend.NewInitialData(result)
+    if err == nil {
+        log.DefaultLogger.Error(fmt.Sprintf("Sending %d messages", count))
+        return &backend.SubscribeStreamResponse{
+            Status:      backend.SubscribeStreamStatusOK,
+            InitialData: initialData,
+        }, nil
+    }
+    log.DefaultLogger.Error(fmt.Sprintf("Error in creating InitialData to be sent to client; %+v", err), err)
     return &backend.SubscribeStreamResponse{
-        Status:      backend.SubscribeStreamStatusOK,
+        Status:      backend.SubscribeStreamStatusPermissionDenied,
         InitialData: initialData,
     }, nil
 }
@@ -78,3 +85,13 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
         }
     }
 }
+
+//func reverse(src [][]byte) [][]byte {
+//    length := len(src)
+//    nlen := length - 1
+//    dest := make([][]byte, length)
+//    for i := 0; i < length; i++ {
+//        dest[i] = src[nlen-i]
+//    }
+//    return dest
+//}
