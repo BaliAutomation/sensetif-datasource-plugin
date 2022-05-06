@@ -13,7 +13,7 @@ import (
 
 func (h *StreamHandler) SubscribeNotificationsStream(_ context.Context, _ *backend.SubscribeStreamRequest, orgId int64) (*backend.SubscribeStreamResponse, error) {
 
-    reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
+    reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10), true)
     defer reader.Close()
 
     hourAgo := time.Now().Add(-60 * time.Minute)
@@ -64,7 +64,7 @@ func (h *StreamHandler) RunNotificationsStream(ctx context.Context, req *backend
     // It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
     // system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
     // batches of errors.
-    reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10))
+    reader := h.pulsar.CreateReader(model.NotificationTopics+strconv.FormatInt(orgId, 10), false)
     defer reader.Close()
     //log.DefaultLogger.Info("Created Pulsar Reader.")
     //minuteAgo := time.Now().Add(-1 * time.Minute)

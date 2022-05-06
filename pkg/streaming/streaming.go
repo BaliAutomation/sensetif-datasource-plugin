@@ -44,8 +44,13 @@ func (h *StreamHandler) SubscribeStream(ctx context.Context, req *backend.Subscr
     }, nil
 }
 
-func (h *StreamHandler) PublishStream(_ context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
-    log.DefaultLogger.Info("PublishStream: " + req.Path + " from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ":" + req.PluginContext.User.Login)
+func (h *StreamHandler) PublishStream(ctx context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
+    orgId := req.PluginContext.OrgID
+    user := req.PluginContext.User.Login
+    log.DefaultLogger.Info("PublishStream: " + req.Path + " from " + strconv.FormatInt(orgId, 10) + ":" + user)
+    if req.Path == "_alarms/status" {
+        return h.RunAlarmCommandsStream(ctx, req, orgId, user)
+    }
     return &backend.PublishStreamResponse{
         Status: backend.PublishStreamStatusPermissionDenied,
     }, nil
