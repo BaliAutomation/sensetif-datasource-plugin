@@ -24,7 +24,7 @@ go build -o ./dist/gpx_sensetif-datasource_linux_amd64 ./pkg
 yarn build || exit 1
 
 export GRAFANA_API_KEY=eyJrIjoiMzkwNTNkZTgxZTA4ODBjY2Q2YTIwNzg1NzBjZDAyOTNjOGNkZDU3OCIsIm4iOiJQdWJsaXNoIEtleSIsImlkIjo0OTA0MDZ9
-$HOME/node_modules/npx/node_modules/.bin/npx @grafana/toolkit plugin:sign --rootUrls https://sensetif.net/
+npx @grafana/toolkit plugin:sign --rootUrls "https://sensetif.net/,https://staging.sensetif.net/"
 
 mkdir sensetif-datasource
 cp -r dist/* sensetif-datasource
