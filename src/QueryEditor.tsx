@@ -177,24 +177,26 @@ export class QueryEditor extends PureComponent<Props, State> {
           onOpenMenu={() => this.state.projects.length === 0 && this.reloadProjects()}
           placeholder={'The project to be queried'}
         />
-
-        <Select<string>
-          value={subsystem.length ? subsystem : null}
-          allowCustomValue
-          options={subsystems}
-          onChange={(val) => val.value !== subsystem && this.onQuerySubsystemChange(val.value!)}
-          onOpenMenu={() => this.state.subsystems.length === 0 && this.reloadSubsystems()}
-          placeholder={'The Subsystem within the project to be queried'}
-        />
-
-        <Select<string>
-          value={datapoint.length ? datapoint : null}
-          allowCustomValue
-          options={datapoints}
-          onChange={(val) => val.value !== datapoint && this.onQueryDatapointChange(val.value!)}
-          onOpenMenu={() => this.state.datapoints.length === 0 && this.reloadDatapoints()}
-          placeholder={'The Datapoint in the Subsystem'}
-        />
+        {project !== "_" && (
+          <Select<string>
+            value={subsystem.length ? subsystem : null}
+            allowCustomValue
+            options={subsystems}
+            onChange={(val) => val.value !== subsystem && this.onQuerySubsystemChange(val.value!)}
+            onOpenMenu={() => this.state.subsystems.length === 0 && this.reloadSubsystems()}
+            placeholder={'The Subsystem within the project to be queried'}
+          />
+        )}
+        {project !== "_" && (
+          <Select<string>
+            value={datapoint.length ? datapoint : null}
+            allowCustomValue
+            options={datapoints}
+            onChange={(val) => val.value !== datapoint && this.onQueryDatapointChange(val.value!)}
+            onOpenMenu={() => this.state.datapoints.length === 0 && this.reloadDatapoints()}
+            placeholder={'The Datapoint in the Subsystem'}
+          />
+        )}
       </div>
     );
   }
