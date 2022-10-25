@@ -87,7 +87,11 @@ func (p *ResourceHandler) CallResource(ctx context.Context, request *backend.Cal
                 result, err := link.Fn(orgId, parameters, request.Body, p.Clients)
                 if err == nil {
                     log.DefaultLogger.Info(fmt.Sprintf("Result: %s", string(result.Body)))
-                    if sendErr := sender.Send(result); sendErr != nil {
+                    if result.Body == nil {
+                        result.Body = []byte("{}") // Maybe we always need to return a json body?
+                    }
+                    sendErr := sender.Send(result)
+                    if sendErr != nil {
                         log.DefaultLogger.Error("could not write response to the client. " + sendErr.Error())
                         return sendErr
                     }
