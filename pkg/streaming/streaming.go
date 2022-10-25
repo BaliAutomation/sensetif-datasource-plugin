@@ -4,7 +4,7 @@ import (
     "fmt"
     "strconv"
 
-    "github.com/BaliAutomation/sensetif-datasource/pkg/client"
+    "github.com/Sensetif/sensetif-datasource/pkg/client"
     "github.com/grafana/grafana-plugin-sdk-go/backend"
     "github.com/grafana/grafana-plugin-sdk-go/backend/log"
     "golang.org/x/net/context"

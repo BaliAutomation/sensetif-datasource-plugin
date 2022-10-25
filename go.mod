@@ -1,11 +1,11 @@
-module github.com/BaliAutomation/sensetif-datasource
+module github.com/Sensetif/sensetif-datasource
 
 go 1.18
 
 require (
 	github.com/apache/pulsar-client-go v0.8.1
 	github.com/gocql/gocql v1.0.0
-	github.com/grafana/grafana-plugin-sdk-go v0.133.0
+	github.com/grafana/grafana-plugin-sdk-go v0.141.0
 	github.com/stripe/stripe-go/v72 v72.103.0
 	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985
 )
@@ -65,7 +65,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/stretchr/testify v1.7.2 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c // indirect
@@ -77,5 +77,5 @@ require (
 	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

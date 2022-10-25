@@ -8,8 +8,8 @@ import (
     "strings"
     "time"
 
-    "github.com/BaliAutomation/sensetif-datasource/pkg/client"
-    "github.com/BaliAutomation/sensetif-datasource/pkg/model"
+    "github.com/Sensetif/sensetif-datasource/pkg/client"
+    "github.com/Sensetif/sensetif-datasource/pkg/model"
     "github.com/grafana/grafana-plugin-sdk-go/backend"
     "github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
     "github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"

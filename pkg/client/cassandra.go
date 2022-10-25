@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/BaliAutomation/sensetif-datasource/pkg/model"
+	"github.com/Sensetif/sensetif-datasource/pkg/model"
 	"github.com/gocql/gocql"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )

@@ -3,7 +3,7 @@ package streaming
 import (
     "context"
     "fmt"
-    "github.com/BaliAutomation/sensetif-datasource/pkg/model"
+    "github.com/Sensetif/sensetif-datasource/pkg/model"
     "github.com/apache/pulsar-client-go/pulsar"
     "github.com/grafana/grafana-plugin-sdk-go/backend"
     "github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -13,7 +13,7 @@ import (
 
 func (h *StreamHandler) SubscribeNotificationsStream(_ context.Context, _ *backend.SubscribeStreamRequest, orgId int64) (*backend.SubscribeStreamResponse, error) {
 
-    reader := h.pulsar.CreateReader(model.NotificationTopics + strconv.FormatInt(orgId, 10), true)
+    reader := h.pulsar.CreateReader(model.NotificationTopics+strconv.FormatInt(orgId, 10), true)
     defer reader.Close()
 
     hourAgo := time.Now().Add(-60 * time.Minute)

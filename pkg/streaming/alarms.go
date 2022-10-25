@@ -4,7 +4,7 @@ import (
     "context"
     "encoding/json"
     "fmt"
-    "github.com/BaliAutomation/sensetif-datasource/pkg/model"
+    "github.com/Sensetif/sensetif-datasource/pkg/model"
     "github.com/grafana/grafana-plugin-sdk-go/backend"
     "github.com/grafana/grafana-plugin-sdk-go/backend/log"
     "github.com/grafana/grafana-plugin-sdk-go/data"

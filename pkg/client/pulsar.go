@@ -5,7 +5,7 @@ import (
     "fmt"
     "time"
 
-    "github.com/BaliAutomation/sensetif-datasource/pkg/model"
+    "github.com/Sensetif/sensetif-datasource/pkg/model"
     "github.com/apache/pulsar-client-go/pulsar"
     "github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
