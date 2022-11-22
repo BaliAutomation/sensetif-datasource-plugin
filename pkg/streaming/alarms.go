@@ -12,8 +12,9 @@ import (
 )
 
 //func (h *StreamHandler) RunAlarmsStatusStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
-//    return fmt.Errorf("Not implemented yet!")
-//}
+func (h *StreamHandler) RunAlarmsStatusStream(_ context.Context, _ *backend.RunStreamRequest, _ *backend.StreamSender, _ int64) error {
+   return fmt.Errorf("Not implemented yet!")
+}
 
 const TOPIC_COMMANDS = "alarmcommands"
 
