@@ -11,16 +11,16 @@ import (
     "strconv"
 )
 
-func (h *StreamHandler) RunAlarmsStatusStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
-    return fmt.Errorf("Not implemented yet!")
-}
+//func (h *StreamHandler) RunAlarmsStatusStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
+//    return fmt.Errorf("Not implemented yet!")
+//}
 
 const TOPIC_COMMANDS = "alarmcommands"
 
-type alarmCommand struct {
-    command string
-    args    map[string]string
-}
+//type alarmCommand struct {
+//    command string
+//    args    map[string]string
+//}
 
 func (h *StreamHandler) RunAlarmCommandsStream(_ context.Context, req *backend.PublishStreamRequest, orgId int64, user string) (*backend.PublishStreamResponse, error) {
     key := "2:" + strconv.FormatInt(orgId, 10) + ":" + user
@@ -84,22 +84,22 @@ func (h *StreamHandler) RunAlarmsHistoryStream(ctx context.Context, req *backend
     }
 }
 
-func (h *StreamHandler) FindAlarmStates(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
-    // It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
-    // system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
-    // batches of errors.
-    labelFrame := data.NewFrame("error",
-        data.NewField("Time", nil, make([]int64, 1)),
-        data.NewField("Class", nil, make([]string, 1)),
-        data.NewField("Category", nil, make([]string, 1)),
-        data.NewField("Project", nil, make([]string, 1)),
-        data.NewField("Subsystem", nil, make([]string, 1)),
-        data.NewField("Name", nil, make([]string, 1)),
-        data.NewField("Description", nil, make([]string, 1)),
-        data.NewField("", nil, make([]string, 1)),
-    )
-}
+//func (h *StreamHandler) FindAlarmStates(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
+// It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
+// system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
+// batches of errors.
+//labelFrame := data.NewFrame("error",
+//    data.NewField("Time", nil, make([]int64, 1)),
+//    data.NewField("Class", nil, make([]string, 1)),
+//    data.NewField("Category", nil, make([]string, 1)),
+//    data.NewField("Project", nil, make([]string, 1)),
+//    data.NewField("Subsystem", nil, make([]string, 1)),
+//    data.NewField("Name", nil, make([]string, 1)),
+//    data.NewField("Description", nil, make([]string, 1)),
+//    data.NewField("", nil, make([]string, 1)),
+//)
+//}
 
-func FormatAlarmStates(queryName string, alarmStates []model.TsPair) *data.Frame {
-
-}
+//func FormatAlarmStates(queryName string, alarmStates []model.TsPair) *data.Frame {
+//    return &data.Frame{}
+//}

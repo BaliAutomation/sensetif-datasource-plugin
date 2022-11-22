@@ -28,7 +28,7 @@ type SensetifDatasource struct {
     cassandraClient client.Cassandra
 }
 
-func (sds *SensetifDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+func (sds *SensetifDatasource) QueryData(_ context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
     log.DefaultLogger.Info(fmt.Sprintf("QueryData: %d, %s -> %s", req.PluginContext.OrgID, req.PluginContext.User.Login, string(req.Queries[0].JSON)))
     orgId := req.PluginContext.OrgID
     response := backend.NewQueryDataResponse()
@@ -55,7 +55,7 @@ func (sds *SensetifDatasource) query(queryName string, orgId int64, query backen
     return sds.executeTimeseriesQuery(queryName, maxValues, qm.Parameters, orgId, query)
 }
 
-func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValues int, parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
+func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValues int, /*parameters*/ _ string, orgId int64, query backend.DataQuery) backend.DataResponse {
     from := query.TimeRange.From
     to := query.TimeRange.To
 
@@ -70,8 +70,8 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValue
         projects := sds.cassandraClient.FindAllProjects(orgId)
         frame = formatProjectsQuery(queryName, projects)
     } else if model_.Project == "_alarms" {
-        alarmStates := sds.cassandraClient.QueryAlarmStates(orgId, model_)
-        frame = FormatAlarmsQuery(queryName, alarmStates)
+        //alarmStates := sds.cassandraClient.QueryAlarmStates(orgId, model_)
+        //frame = FormatAlarmsQuery(queryName, alarmStates)
     } else {
         timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to, maxValues)
         frame = formatTimeseriesQuery(queryName, timeseries, frame)
@@ -114,7 +114,7 @@ func formatProjectsQuery(queryName string, projects []model.ProjectSettings) *da
     return frame
 }
 
-func (sds *SensetifDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
+func (sds *SensetifDatasource) CheckHealth(_ context.Context, _ *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
     log.DefaultLogger.Info("Check Health")
     healthy := sds.cassandraClient.IsHealthy()
     var status backend.HealthStatus

@@ -87,13 +87,15 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
     }
     return reduceSize(maxValues, result)
 }
-func (cass *CassandraClient) QueryAlarmHistory(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
 
+//func (cass *CassandraClient) QueryAlarmHistory(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
+func (cass *CassandraClient) QueryAlarmHistory(_ int64, _ model.SensorRef, _ time.Time, _ time.Time, _ int) []model.TsPair {
+    return make([]model.TsPair, 0)
 }
 
-func (cass *CassandraClient) QueryAlarmStates(org int64, sensor model.SensorRef) []model.TsPair {
-    scanner := cass.createQuery(planlimitsTablename, planlimitsQuery, orgId)
-
+//func (cass *CassandraClient) QueryAlarmStates(org int64, sensor model.SensorRef) []model.TsPair {
+func (cass *CassandraClient) QueryAlarmStates(_ int64, _ model.SensorRef) []model.TsPair {
+    return make([]model.TsPair, 0)
 }
 
 func (cass *CassandraClient) GetCurrentLimits(orgId int64) model.PlanLimits {
@@ -355,8 +357,8 @@ const tsQuery = "SELECT value,ts FROM %s.%s" +
     " ts <= ?" +
     ";"
 
-const keyValuesTablename = "keyvalues"
-const keyValuesSelectQuery = "SELECT type, key, created, value FROM %s.%s WHERE orgid = ? AND type = ? AND key = '___ALL___' AND deleted = '1970-01-01 0:00:00+0000';\n"
+//const keyValuesTablename = "keyvalues"
+//const keyValuesSelectQuery = "SELECT type, key, created, value FROM %s.%s WHERE orgid = ? AND type = ? AND key = '___ALL___' AND deleted = '1970-01-01 0:00:00+0000';\n"
 
 const journalTablename = "journals"
 const journalSelectAllQuery = "SELECT value,ts FROM %s.%s WHERE orgid = ? AND type = ? AND name = ?;"
