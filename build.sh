@@ -15,5 +15,5 @@ npx @grafana/toolkit plugin:sign --rootUrls "https://sensetif.net/,http://localh
 
 sudo service grafana-server stop
 mkdir -p $BUILD_DIR/sensetif-datasource 2>/dev/null
-cp -r dist/* $BUILD_DIR/sensetif-datasource
+sudo cp -r dist/* $BUILD_DIR/sensetif-datasource
 sudo service grafana-server start
