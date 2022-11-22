@@ -177,7 +177,7 @@ export class QueryEditor extends PureComponent<Props, State> {
           onOpenMenu={() => this.state.projects.length === 0 && this.reloadProjects()}
           placeholder={'The project to be queried'}
         />
-        {project !== "_" && (
+        {!project.startsWith("_") && (
           <Select<string>
             value={subsystem.length ? subsystem : null}
             allowCustomValue
@@ -187,7 +187,7 @@ export class QueryEditor extends PureComponent<Props, State> {
             placeholder={'The Subsystem within the project to be queried'}
           />
         )}
-        {project !== "_" && (
+        {!project.startsWith("_") && !subsystem.startsWith("_") && (
           <Select<string>
             value={datapoint.length ? datapoint : null}
             allowCustomValue

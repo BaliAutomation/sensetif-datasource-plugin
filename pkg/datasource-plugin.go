@@ -51,17 +51,8 @@ func (sds *SensetifDatasource) query(queryName string, orgId int64, query backen
     if response.Error != nil {
         return response
     }
-    log.DefaultLogger.Info("Query Format: " + qm.Format)
-    if qm.Format == "" {
-        qm.Format = "timeseries"
-    }
-    switch qm.Format {
-    case "timeseries":
-        maxValues := int(query.MaxDataPoints)
-        return sds.executeTimeseriesQuery(queryName, maxValues, qm.Parameters, orgId, query)
-    }
-    response.Error = fmt.Errorf("unknown Format: %s", qm.Format)
-    return response
+    maxValues := int(query.MaxDataPoints)
+    return sds.executeTimeseriesQuery(queryName, maxValues, qm.Parameters, orgId, query)
 }
 
 func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValues int, parameters string, orgId int64, query backend.DataQuery) backend.DataResponse {
@@ -78,6 +69,9 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValue
     if model_.Project == "_" {
         projects := sds.cassandraClient.FindAllProjects(orgId)
         frame = formatProjectsQuery(queryName, projects)
+    } else if model_.Project == "_alarms" {
+        alarmStates := sds.cassandraClient.QueryAlarmStates(orgId, model_)
+        frame = FormatAlarmsQuery(queryName, alarmStates)
     } else {
         timeseries := sds.cassandraClient.QueryTimeseries(orgId, model_, from, to, maxValues)
         frame = formatTimeseriesQuery(queryName, timeseries, frame)

@@ -83,3 +83,23 @@ func (h *StreamHandler) RunAlarmsHistoryStream(ctx context.Context, req *backend
         }
     }
 }
+
+func (h *StreamHandler) FindAlarmStates(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
+    // It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
+    // system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
+    // batches of errors.
+    labelFrame := data.NewFrame("error",
+        data.NewField("Time", nil, make([]int64, 1)),
+        data.NewField("Class", nil, make([]string, 1)),
+        data.NewField("Category", nil, make([]string, 1)),
+        data.NewField("Project", nil, make([]string, 1)),
+        data.NewField("Subsystem", nil, make([]string, 1)),
+        data.NewField("Name", nil, make([]string, 1)),
+        data.NewField("Description", nil, make([]string, 1)),
+        data.NewField("", nil, make([]string, 1)),
+    )
+}
+
+func FormatAlarmStates(queryName string, alarmStates []model.TsPair) *data.Frame {
+
+}
