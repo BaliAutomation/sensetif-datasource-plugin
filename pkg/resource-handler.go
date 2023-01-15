@@ -68,6 +68,9 @@ var links = []Link{
 
     // Organizations API
     {Method: "GET", Fn: handler.GetOrganization, Pattern: MustCompile(`^_organization$`)},
+
+    // Timeseries Update API
+    {Method: "PUT", Fn: handler.UpdateTimeseries, Pattern: MustCompile(`^_timeseries/(` + projectRegexName + `)/(` + subsystemRegexName + `)/(` + datapointRegexName + `)$`)},
 }
 
 //goland:noinspection GoUnusedParameter
