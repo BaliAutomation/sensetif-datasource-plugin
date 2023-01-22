@@ -7,6 +7,7 @@ import (
     "github.com/grafana/grafana-plugin-sdk-go/backend"
     "github.com/grafana/grafana-plugin-sdk-go/backend/log"
     "net/http"
+    "fmt"
     "strconv"
     "time"
 )
@@ -27,6 +28,7 @@ func UpdateTimeseries(orgId int64, params []string, body []byte, clients *client
     err := json.Unmarshal(body, &tspairs)
     log.DefaultLogger.Info("Timeseries: " + strconv.FormatInt(int64(len(tspairs)), 10))
     if err != nil {
+	    log.DefaultLogger.Error("Invalid format: " + err.Error())
         return &backend.CallResourceResponse{
             Status: http.StatusBadRequest,
         }, nil
@@ -43,6 +45,7 @@ func UpdateTimeseries(orgId int64, params []string, body []byte, clients *client
         msgjson, err2 := json.Marshal(message)
         if err2 == nil {
             clients.Pulsar.Send(model.TimeseriesTopic, key, msgjson)
+	    log.DefaultLogger.Info(fmt.Sprintf( "Update sent for: %d:%s/%s/%s = %f", orgId, params[1], params[2], params[3], tspair.Value))
         }
     }
     return &backend.CallResourceResponse{
