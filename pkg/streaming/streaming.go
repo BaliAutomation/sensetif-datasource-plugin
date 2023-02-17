@@ -26,7 +26,7 @@ func (h *StreamHandler) SubscribeStream(ctx context.Context, req *backend.Subscr
     log.DefaultLogger.Info("SubscribeStream: " + req.Path + " from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ": " + req.PluginContext.User.Login)
     orgId := req.PluginContext.OrgID
     if req.Path == "_notifications" {
-        return h.SubscribeNotificationsStream(ctx, req, orgId)
+        return h.SubscribeNotificationsStream(orgId)
     }
     if req.Path == "_alarms/status" {
         return &backend.SubscribeStreamResponse{
@@ -60,13 +60,13 @@ func (h *StreamHandler) RunStream(ctx context.Context, req *backend.RunStreamReq
     log.DefaultLogger.Info("RunStream from " + strconv.FormatInt(req.PluginContext.OrgID, 10) + ":" + req.PluginContext.User.Login)
     orgId := req.PluginContext.OrgID
     if req.Path == "_notifications" {
-        return h.RunNotificationsStream(ctx, req, sender, orgId)
+        return h.RunNotificationsStream(ctx, sender, orgId)
     }
     if req.Path == "_alarms/status" {
-        return h.RunAlarmsStatusStream(ctx, req, sender, orgId)
+        return h.RunAlarmsStatusStream(ctx, sender, orgId)
     }
     if req.Path == "_alarms/history" {
-        return h.RunAlarmsHistoryStream(ctx, req, sender, orgId)
+        return h.RunAlarmsHistoryStream(ctx, sender, orgId)
     }
     return fmt.Errorf("Unknown request.")
 }

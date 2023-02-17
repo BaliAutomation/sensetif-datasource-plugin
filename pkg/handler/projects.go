@@ -15,7 +15,11 @@ import (
 //goland:noinspection GoUnusedParameter
 func ListProjects(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
     log.DefaultLogger.Info("ListProjects()")
-    projects := clients.Cassandra.FindAllProjects(orgId)
+    projects, err := clients.Cassandra.FindAllProjects(orgId)
+    if err != nil {
+        log.DefaultLogger.Error("Unable to read project.")
+        return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+    }
     rawJson, err := json.Marshal(projects)
     if err != nil {
         log.DefaultLogger.Error("Unable to marshal json")
@@ -30,7 +34,10 @@ func ListProjects(orgId int64, params []string, body []byte, clients *client.Cli
 //goland:noinspection GoUnusedParameter
 func GetProject(orgId int64, params []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
     log.DefaultLogger.Info("GetProject()")
-    project := clients.Cassandra.GetProject(orgId, params[1])
+    project, err := clients.Cassandra.GetProject(orgId, params[1])
+    if err != nil {
+        return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+    }
     bytes, err := json.Marshal(project)
     if err != nil {
         return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())

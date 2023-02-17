@@ -12,8 +12,8 @@ import (
 )
 
 //func (h *StreamHandler) RunAlarmsStatusStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
-func (h *StreamHandler) RunAlarmsStatusStream(_ context.Context, _ *backend.RunStreamRequest, _ *backend.StreamSender, _ int64) error {
-   return fmt.Errorf("Not implemented yet!")
+func (h *StreamHandler) RunAlarmsStatusStream(_ context.Context, _ *backend.StreamSender, _ int64) error {
+    return fmt.Errorf("Not implemented yet!")
 }
 
 const TOPIC_COMMANDS = "alarmcommands"
@@ -32,10 +32,7 @@ func (h *StreamHandler) RunAlarmCommandsStream(_ context.Context, req *backend.P
 
 }
 
-func (h *StreamHandler) RunAlarmsHistoryStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender, orgId int64) error {
-    // It is Ok to send one value in each frame, since there shouldn't be too many arriving, as that indicates misconfigured
-    // system and it lies in people's own interest to fix those. However, this could be revisited in future and sending
-    // batches of errors.
+func (h *StreamHandler) RunAlarmsHistoryStream(ctx context.Context, sender *backend.StreamSender, orgId int64) error {
     labelFrame := data.NewFrame("error",
         data.NewField("Time", nil, make([]int64, 1)),
         data.NewField("Class", nil, make([]string, 1)),
@@ -76,7 +73,7 @@ func (h *StreamHandler) RunAlarmsHistoryStream(ctx context.Context, req *backend
         labelFrame.Fields[5].Set(0, notification.Message)
         labelFrame.Fields[6].Set(0, notification.Exception.Message)
         labelFrame.Fields[7].Set(0, notification.Exception.StackTrace)
-        log.DefaultLogger.Info("Sending notification to " + req.PluginContext.User.Login)
+        log.DefaultLogger.Info("Sending notification.")
         err = sender.SendFrame(labelFrame, data.IncludeAll)
         if err != nil {
             log.DefaultLogger.Error(fmt.Sprintf("Couldn't send frame: %v", err))

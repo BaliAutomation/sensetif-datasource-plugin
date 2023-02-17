@@ -18,7 +18,11 @@ func ListSubsystems(orgId int64, params []string, body []byte, clients *client.C
         return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
     }
 
-    subsystems := clients.Cassandra.FindAllSubsystems(orgId, params[1])
+    subsystems, err := clients.Cassandra.FindAllSubsystems(orgId, params[1])
+    if err != nil {
+        log.DefaultLogger.Error("Unable to read subsystems")
+        return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+    }
     rawJson, err := json.Marshal(subsystems)
     if err != nil {
         log.DefaultLogger.Error("Unable to marshal json")
@@ -38,7 +42,10 @@ func GetSubsystem(orgId int64, params []string, body []byte, clients *client.Cli
         return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
     }
 
-    subsystem := clients.Cassandra.GetSubsystem(orgId, params[1], params[2])
+    subsystem, err := clients.Cassandra.GetSubsystem(orgId, params[1], params[2])
+    if err != nil {
+        return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+    }
     bytes, err := json.Marshal(subsystem)
     if err != nil {
         return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())

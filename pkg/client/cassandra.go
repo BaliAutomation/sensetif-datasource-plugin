@@ -13,15 +13,15 @@ import (
 
 type Cassandra interface {
     QueryTimeseries(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValue int) []model.TsPair
-    QueryAlarmHistory(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValue int) []model.TsPair
-    QueryAlarmStates(org int64, sensor model.SensorRef) []model.TsPair
-    FindAllProjects(org int64) []model.ProjectSettings
-    FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings
-    FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings
-    GetOrganization(orgId int64) model.OrganizationSettings
-    GetProject(orgId int64, name string) model.ProjectSettings
-    GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings
-    GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.DatapointSettings
+    QueryAlarmHistory(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValue int) ([]model.TsPair, error)
+    QueryAlarmStates(org int64, sensor model.SensorRef) ([]model.TsPair, error)
+    FindAllProjects(org int64) ([]model.ProjectSettings, error)
+    FindAllSubsystems(org int64, projectName string) ([]model.SubsystemSettings, error)
+    FindAllDatapoints(org int64, projectName string, subsystemName string) ([]model.DatapointSettings, error)
+    GetOrganization(orgId int64) (model.OrganizationSettings, error)
+    GetProject(orgId int64, name string) (model.ProjectSettings, error)
+    GetSubsystem(org int64, projectName string, subsystem string) (model.SubsystemSettings, error)
+    GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) (model.DatapointSettings, error)
 
     Shutdown()
     Reinitialize()
@@ -74,7 +74,8 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
     //log.DefaultLogger.Info(fmt.Sprintf("yearMonths:  start=%d, end=%d", startYearMonth, endYearMonth))
 
     for yearmonth := endYearMonth; yearmonth >= startYearMonth; yearmonth-- {
-        scanner := cass.createQuery(timeseriesTablename, tsQuery, org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to)
+        iter := cass.createQuery(timeseriesTablename, tsQuery, org, sensor.Project, sensor.Subsystem, yearmonth, sensor.Datapoint, from, to)
+        scanner := iter.Scanner()
         for scanner.Next() {
             var rowValue model.TsPair
             err := scanner.Scan(&rowValue.Value, &rowValue.TS)
@@ -84,24 +85,29 @@ func (cass *CassandraClient) QueryTimeseries(org int64, sensor model.SensorRef, 
             p := []model.TsPair{rowValue}
             result = append(p, result...)
         }
+        err := iter.Close()
+        if err != nil {
+            log.DefaultLogger.Error("Internal Error? Failed to read record", err)
+        }
     }
     return reduceSize(maxValues, result)
 }
 
 //func (cass *CassandraClient) QueryAlarmHistory(org int64, sensor model.SensorRef, from time.Time, to time.Time, maxValues int) []model.TsPair {
-func (cass *CassandraClient) QueryAlarmHistory(_ int64, _ model.SensorRef, _ time.Time, _ time.Time, _ int) []model.TsPair {
-    return make([]model.TsPair, 0)
+func (cass *CassandraClient) QueryAlarmHistory(_ int64, _ model.SensorRef, _ time.Time, _ time.Time, _ int) ([]model.TsPair, error) {
+    return make([]model.TsPair, 0), nil
 }
 
 //func (cass *CassandraClient) QueryAlarmStates(org int64, sensor model.SensorRef) []model.TsPair {
-func (cass *CassandraClient) QueryAlarmStates(_ int64, _ model.SensorRef) []model.TsPair {
-    return make([]model.TsPair, 0)
+func (cass *CassandraClient) QueryAlarmStates(_ int64, _ model.SensorRef) ([]model.TsPair, error) {
+    return make([]model.TsPair, 0), nil
 }
 
-func (cass *CassandraClient) GetCurrentLimits(orgId int64) model.PlanLimits {
+func (cass *CassandraClient) GetCurrentLimits(orgId int64) (model.PlanLimits, error) {
 
     //log.DefaultLogger.Info("GetCurrentLimits for " + strconv.FormatInt(orgId, 10))
-    scanner := cass.createQuery(planlimitsTablename, planlimitsQuery, orgId)
+    iter := cass.createQuery(planlimitsTablename, planlimitsQuery, orgId)
+    scanner := iter.Scanner()
     var limits model.PlanLimits
     limits.MaxStorage = "b"
     limits.MaxDatapoints = 50
@@ -112,42 +118,45 @@ func (cass *CassandraClient) GetCurrentLimits(orgId int64) model.PlanLimits {
             log.DefaultLogger.Error("Internal Error? Failed to read record", err)
         }
     }
-    return limits
+    return limits, iter.Close()
 }
 
-func (cass *CassandraClient) GetOrganization(orgId int64) model.OrganizationSettings {
+func (cass *CassandraClient) GetOrganization(orgId int64) (model.OrganizationSettings, error) {
     log.DefaultLogger.Info("getOrganization:  " + strconv.FormatInt(orgId, 10))
     //SELECT name,email,stripecustomer,currentplan,address1,address2,zipcode,city,state,country FROM %s.%s WHERE orgid = ? AND DELETED = '1970-01-01 0:00:00+0000';"
-    scanner := cass.createQuery(organizationsTablename, organizationQuery, orgId)
+    iter := cass.createQuery(organizationsTablename, organizationQuery, orgId)
+    scanner := iter.Scanner()
     for scanner.Next() {
         var org model.OrganizationSettings
         err := scanner.Scan(&org.Name, &org.Email, &org.StripeCustomer, &org.CurrentPlan)
         if err != nil {
             log.DefaultLogger.Error("Internal Error? Failed to read record", err)
         }
-        return org
+        return org, iter.Close()
     }
-    return model.OrganizationSettings{}
+    return model.OrganizationSettings{}, iter.Close()
 }
 
-func (cass *CassandraClient) GetProject(orgId int64, name string) model.ProjectSettings {
+func (cass *CassandraClient) GetProject(orgId int64, name string) (model.ProjectSettings, error) {
     log.DefaultLogger.Info("getProject:  " + strconv.FormatInt(orgId, 10) + "/" + name)
-    scanner := cass.createQuery(projectsTablename, projectQuery, orgId, name)
+    iter := cass.createQuery(projectsTablename, projectQuery, orgId, name)
+    scanner := iter.Scanner()
     for scanner.Next() {
         var rowValue model.ProjectSettings
         err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.City, &rowValue.Country, &rowValue.Timezone, &rowValue.Geolocation)
         if err != nil {
             log.DefaultLogger.Error("Internal Error? Failed to read record", err)
         }
-        return rowValue
+        return rowValue, iter.Close()
     }
-    return model.ProjectSettings{}
+    return model.ProjectSettings{}, iter.Close()
 }
 
-func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings {
+func (cass *CassandraClient) FindAllProjects(org int64) ([]model.ProjectSettings, error) {
     log.DefaultLogger.Info("findAllProjects:  " + strconv.FormatInt(org, 10))
     result := make([]model.ProjectSettings, 0)
-    scanner := cass.createQuery(projectsTablename, projectsQuery, org)
+    iter := cass.createQuery(projectsTablename, projectsQuery, org)
+    scanner := iter.Scanner()
     for scanner.Next() {
         var rowValue model.ProjectSettings
         err := scanner.Scan(&rowValue.Name, &rowValue.Title, &rowValue.City, &rowValue.Country, &rowValue.Timezone, &rowValue.Geolocation)
@@ -157,12 +166,13 @@ func (cass *CassandraClient) FindAllProjects(org int64) []model.ProjectSettings 
         result = append(result, rowValue)
     }
     log.DefaultLogger.Info(fmt.Sprintf("Found: %d projects", len(result)))
-    return result
+    return result, iter.Close()
 }
 
-func (cass *CassandraClient) GetSubsystem(org int64, projectName string, subsystem string) model.SubsystemSettings {
+func (cass *CassandraClient) GetSubsystem(org int64, projectName string, subsystem string) (model.SubsystemSettings, error) {
     log.DefaultLogger.Info("getSubsystem:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystem)
-    scanner := cass.createQuery(subsystemsTablename, subsystemQuery, org, projectName, subsystem)
+    iter := cass.createQuery(subsystemsTablename, subsystemQuery, org, projectName, subsystem)
+    scanner := iter.Scanner()
     for scanner.Next() {
         var rowValue model.SubsystemSettings
         rowValue.Project = projectName
@@ -170,15 +180,16 @@ func (cass *CassandraClient) GetSubsystem(org int64, projectName string, subsyst
         if err != nil {
             log.DefaultLogger.Error("Internal Error? Failed to read record", err)
         }
-        return rowValue
+        return rowValue, iter.Close()
     }
-    return model.SubsystemSettings{}
+    return model.SubsystemSettings{}, iter.Close()
 }
 
-func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []model.SubsystemSettings {
+func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) ([]model.SubsystemSettings, error) {
     log.DefaultLogger.Info("findAllSubsystems:  " + strconv.FormatInt(org, 10) + "/" + projectName)
     result := make([]model.SubsystemSettings, 0)
-    scanner := cass.createQuery(subsystemsTablename, subsystemsQuery, org, projectName)
+    iter := cass.createQuery(subsystemsTablename, subsystemsQuery, org, projectName)
+    scanner := iter.Scanner()
     for scanner.Next() {
         var rowValue model.SubsystemSettings
         rowValue.Project = projectName
@@ -189,28 +200,30 @@ func (cass *CassandraClient) FindAllSubsystems(org int64, projectName string) []
         result = append(result, rowValue)
     }
     log.DefaultLogger.Info(fmt.Sprintf("Found: %d subsystems", len(result)))
-    return result
+    return result, iter.Close()
 }
 
-func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) model.DatapointSettings {
+func (cass *CassandraClient) GetDatapoint(org int64, projectName string, subsystemName string, datapoint string) (model.DatapointSettings, error) {
     log.DefaultLogger.Info("getDatapoint:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + datapoint)
-    scanner := cass.createQuery(datapointsTablename, datapointQuery, org, projectName, subsystemName, datapoint)
+    iter := cass.createQuery(datapointsTablename, datapointQuery, org, projectName, subsystemName, datapoint)
+    scanner := iter.Scanner()
     for scanner.Next() {
-        return cass.deserializeDatapointRow(scanner)
+        return cass.deserializeDatapointRow(scanner), iter.Close()
     }
-    return model.DatapointSettings{}
+    return model.DatapointSettings{}, iter.Close()
 }
 
-func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) []model.DatapointSettings {
+func (cass *CassandraClient) FindAllDatapoints(org int64, projectName string, subsystemName string) ([]model.DatapointSettings, error) {
     log.DefaultLogger.Info("findAllDatapoints:  " + strconv.FormatInt(org, 10) + "/" + projectName + "/" + subsystemName)
     result := make([]model.DatapointSettings, 0)
-    scanner := cass.createQuery(datapointsTablename, datapointsQuery, org, projectName, subsystemName)
+    iter := cass.createQuery(datapointsTablename, datapointsQuery, org, projectName, subsystemName)
+    scanner := iter.Scanner()
     for scanner.Next() {
         datapoint := cass.deserializeDatapointRow(scanner)
         result = append(result, datapoint)
     }
     log.DefaultLogger.Info(fmt.Sprintf("Found: %d datapoints", len(result)))
-    return result
+    return result, iter.Close()
 }
 
 func (cass *CassandraClient) SelectAllInJournal(org int64, journaltype string, journalname string) (model.Journal, error) {
@@ -219,7 +232,8 @@ func (cass *CassandraClient) SelectAllInJournal(org int64, journaltype string, j
         Type: journaltype,
         Name: journalname,
     }
-    scanner := cass.createQuery(journalTablename, journalSelectAllQuery, org, journaltype, journalname)
+    iter := cass.createQuery(journalTablename, journalSelectAllQuery, org, journaltype, journalname)
+    scanner := iter.Scanner()
     for scanner.Next() {
         entry := model.JournalEntry{}
         err := scanner.Scan(&entry.Value, &entry.Added)
@@ -229,7 +243,7 @@ func (cass *CassandraClient) SelectAllInJournal(org int64, journaltype string, j
         }
         result.Entries = append(result.Entries, entry)
     }
-    return result, nil
+    return result, iter.Close()
 }
 
 func (cass *CassandraClient) SelectRangeInJournal(org int64, journaltype string, journalname string, from time.Time, to time.Time) (model.Journal, error) {
@@ -238,7 +252,8 @@ func (cass *CassandraClient) SelectRangeInJournal(org int64, journaltype string,
         Type: journaltype,
         Name: journalname,
     }
-    scanner := cass.createQuery(journalTablename, journalSelectRangeQuery, org, journaltype, journalname, from, to)
+    iter := cass.createQuery(journalTablename, journalSelectRangeQuery, org, journaltype, journalname, from, to)
+    scanner := iter.Scanner()
     for scanner.Next() {
         entry := model.JournalEntry{}
         err := scanner.Scan(&entry.Value, &entry.Added)
@@ -248,7 +263,7 @@ func (cass *CassandraClient) SelectRangeInJournal(org int64, journaltype string,
         }
         result.Entries = append(result.Entries, entry)
     }
-    return result, nil
+    return result, iter.Close()
 }
 
 func (cass *CassandraClient) Shutdown() {
@@ -260,20 +275,24 @@ func (cass *CassandraClient) Err() error {
     return cass.err
 }
 
-func (cass *CassandraClient) createQuery(tableName string, query string, args ...interface{}) gocql.Scanner {
+func (cass *CassandraClient) createQuery(tableName string, query string, args ...interface{}) *gocql.Iter {
     t := fmt.Sprintf(query, cass.clusterConfig.Keyspace, tableName)
     q := cass.session.Query(t).Consistency(gocql.One).Idempotent(true).Bind(args...)
     //	log.DefaultLogger.Info("query:  " + q.String())
-    return q.Iter().Scanner()
+    return q.Iter()
 }
 
 func (cass *CassandraClient) deserializeDatapointRow(scanner gocql.Scanner) model.DatapointSettings {
     var r model.DatapointSettings
-    // project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web
+    // project,subsystem,name,pollinterval,datasourcetype,timetolive,proc,ttnv3,web,mqtt
     var ttnv3 model.Ttnv3Datasource
     var web model.WebDatasource
     var mqtt model.MqttDatasource
-    err := scanner.Scan(&r.Project, &r.Subsystem, &r.Name, &r.Interval, &r.SourceType, &r.TimeToLive, &r.Proc, &ttnv3, &web, &mqtt)
+    var proc model.Processing
+    err := scanner.Scan(&r.Project, &r.Subsystem, &r.Name, &r.Interval, &r.SourceType, &r.TimeToLive, &proc, &ttnv3, &web, &mqtt)
+    log.DefaultLogger.Info(fmt.Sprintf("Datapoint: %+v", r))
+    log.DefaultLogger.Info(fmt.Sprintf("Processing: %+v", proc))
+    r.Proc = proc
     if err == nil {
         switch r.SourceType {
         case model.Web:
@@ -339,6 +358,8 @@ const planlimitsQuery = "SELECT orgid,created,maxdatapoints,maxstorage,minpollin
 const planlimitsTablename = "planlimits"
 
 const timeseriesTablename = "timeseries"
+
+const alarmsTablename = "alarms"
 
 const tsQuery = "SELECT value,ts FROM %s.%s" +
     " WHERE" +

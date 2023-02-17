@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/apache/pulsar-client-go v0.8.1
-	github.com/gocql/gocql v1.0.0
+	github.com/gocql/gocql v1.3.1
 	github.com/grafana/grafana-plugin-sdk-go v0.141.0
 	github.com/stripe/stripe-go/v72 v72.103.0
 	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985

@@ -17,7 +17,11 @@ func ListDatapoints(orgId int64, params []string, body []byte, clients *client.C
     if len(params) < 3 {
         return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
     }
-    datapoints := clients.Cassandra.FindAllDatapoints(orgId, params[1], params[2])
+    datapoints, err := clients.Cassandra.FindAllDatapoints(orgId, params[1], params[2])
+    if err != nil {
+        log.DefaultLogger.Error("Unable read datapoint.")
+        return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+    }
     rawJson, err := json.Marshal(datapoints)
     if err != nil {
         log.DefaultLogger.Error("Unable to marshal json")
@@ -33,7 +37,10 @@ func GetDatapoint(orgId int64, params []string, _ []byte, clients *client.Client
     if len(params) < 4 {
         return nil, fmt.Errorf("%w: missing params: \"%v\"", model.ErrBadRequest, params)
     }
-    datapoint := clients.Cassandra.GetDatapoint(orgId, params[1], params[2], params[3])
+    datapoint, err := clients.Cassandra.GetDatapoint(orgId, params[1], params[2], params[3])
+    if err != nil {
+        return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+    }
     bytes, err := json.Marshal(datapoint)
     if err != nil {
         return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())

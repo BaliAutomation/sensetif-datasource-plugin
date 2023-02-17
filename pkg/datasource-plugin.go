@@ -67,7 +67,7 @@ func (sds *SensetifDatasource) executeTimeseriesQuery(queryName string, maxValue
     }
     var frame *data.Frame
     if model_.Project == "_" {
-        projects := sds.cassandraClient.FindAllProjects(orgId)
+        projects, _ := sds.cassandraClient.FindAllProjects(orgId)
         frame = formatProjectsQuery(queryName, projects)
     } else if model_.Project == "_alarms" {
         //alarmStates := sds.cassandraClient.QueryAlarmStates(orgId, model_)

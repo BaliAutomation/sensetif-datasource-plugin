@@ -35,7 +35,7 @@ type SessionProxy struct {
 
 //goland:noinspection GoUnusedParameter
 func CurrentLimits(orgId int64, parameters []string, body []byte, clients *client.Clients) (*backend.CallResourceResponse, error) {
-    limits := clients.Cassandra.GetCurrentLimits(orgId)
+    limits, _ := clients.Cassandra.GetCurrentLimits(orgId)
     limitsInJson, err := json.Marshal(limits)
     if err != nil {
         return &backend.CallResourceResponse{
@@ -63,7 +63,11 @@ func ListPlans(orgId int64, parameters []string, body []byte, clients *client.Cl
     }
     p, _ := json.Marshal(productPrices)
     log.DefaultLogger.Info(fmt.Sprintf("Plans: %s", p))
-    organization := clients.Cassandra.GetOrganization(orgId)
+    organization, err := clients.Cassandra.GetOrganization(orgId)
+    if err != nil {
+        log.DefaultLogger.Error("Unable to read organization.")
+        return nil, fmt.Errorf("%w: %s", model.ErrUnprocessableEntity, err.Error())
+    }
     var result []*model.PlanSettings
     for _, prod := range clients.Stripe.Products {
         if prod.Metadata["category"] == "sensetif" && prod.Active {
