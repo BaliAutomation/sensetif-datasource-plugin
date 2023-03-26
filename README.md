@@ -1,3 +1,9 @@
+
+# This plugin has been merged into the https://github.com/Sensetif/sensetif-app-plugin repository
+
+
+
+
 # Grafana Data Source Backend Plugin Template
 
 [![Build](https://github.com/grafana/grafana-starter-datasource-backend/workflows/CI/badge.svg)](https://github.com/grafana/grafana-datasource-backend/actions?query=workflow%3A%22CI%22)
